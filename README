@@ -1,0 +1,4 @@
+This is an experimental magit extension for manipulating GitHub pull requests
+
+Right now, it does very few and works only with changes to magit.
+In other words, not ready for the public ;)
