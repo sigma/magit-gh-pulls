@@ -43,13 +43,33 @@
     (insert (propertize "Pull Requests:\n" 'face 'magit-section-title))
     (let* ((api (gh-pulls-api "api" :sync t :cache t))
            (repo (magit-gh-pulls-guess-repo))
-           (reqs (oref (gh-pulls-list api (car repo) (cdr repo)) :data)))
-      (dolist (req reqs)
-        (magit-with-section (oref req :number) 'pull
-          (magit-set-section-info req)
-          (insert (format "\t[%s] %s\n"
-                          (oref req :number)
-                          (oref req :title)) )))))
+           (user (car repo))
+           (proj (cdr repo))
+           (stubs (oref (gh-pulls-list api user proj) :data)))
+      (dolist (stub stubs)
+        (let* ((id (oref stub :number))
+               (req (oref (gh-pulls-get api user proj id) :data))
+               (base-sha (oref (oref req :base) :sha))
+               (head-sha (oref (oref req :head) :sha))
+               ;; branch has been deleted in the meantime...
+               (invalid (equal (oref (oref req :head) :ref) head-sha))
+               (have-commits
+                (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
+                     (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
+               (header (propertize (format "\t[%s] %s\n" id (oref req :title))
+                                   'face (cond (have-commits 'default)
+                                               (invalid 'error)
+                                               (t 'italic)))))
+          (magit-with-section id 'pull
+            (magit-set-section-info (list id base-sha head-sha))
+            (insert header)
+            (when have-commits
+              (apply #'magit-git-section
+                     'request nil 'magit-wash-log "log"
+                     (append magit-git-log-options
+                             (list
+                              "--reverse"
+                              (format "%s..%s" base-sha head-sha))))))))))
   (insert "\n"))
 
 ;;;###autoload
