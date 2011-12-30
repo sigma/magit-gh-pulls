@@ -60,8 +60,10 @@
                                    'face (cond (have-commits 'default)
                                                (invalid 'error)
                                                (t 'italic)))))
-          (magit-with-section id 'pull
-            (magit-set-section-info (list id base-sha head-sha))
+          (magit-with-section id (cond (have-commits 'pull)
+                                       (invalid 'invalid-pull)
+                                       (t 'unfetched-pull))
+            (magit-set-section-info (list user proj id))
             (insert header)
             (when have-commits
               (apply #'magit-git-section
@@ -72,9 +74,64 @@
                               (format "%s..%s" base-sha head-sha))))))))))
   (insert "\n"))
 
+(defun magit-gh-pulls-guess-topic-name (req)
+  (let ((user (oref (oref req :user) :login))
+        (topic (oref (oref req :head) :ref)))
+    (format "%s/%s" user topic)))
+
+(defun magit-gh-pulls-create-branch ()
+  (interactive)
+  (magit-section-action (item info "ghpr")
+    ((pull)
+     (let* ((api (gh-pulls-api "api" :sync t :cache t))
+            (req (oref (apply 'gh-pulls-get api info) :data))
+            (branch (read-from-minibuffer
+                     "Branch name: " (magit-gh-pulls-guess-topic-name req)))
+            (base (magit-read-rev "Branch base: "
+                                  (oref (oref req :base) :ref))))
+       (magit-create-branch branch base)
+       (magit-merge (oref (oref req :head) :sha))))
+    ((unfetched-pull)
+     (error "Please fetch pull request commits first"))
+    ((invalid-pull)
+     (error "This pull request refers to invalid reference"))))
+
+(defun magit-gh-pulls-fetch-commits ()
+  (interactive)
+  (magit-section-action (item info "ghpr")
+    ((unfetched-pull)
+     (let* ((api (gh-pulls-api "api" :sync t :cache t))
+            (req (oref (apply 'gh-pulls-get api info) :data))
+            (head (oref req :head)))
+       (magit-run-git "fetch" (oref (oref head :repo) :git-url)
+                      (oref head :ref))))
+    ((pull)
+     nil)
+    ((invalid-pull)
+     (error "This pull request refers to invalid reference"))))
+
+(easy-menu-define magit-gh-pulls-extension-menu
+  nil
+  "GitHub Pull Requests extension menu"
+  '("GitHub Pull Requests"
+    :visible magit-gh-pulls-mode
+    ["Create pull request branch" magit-gh-pulls-create-branch]
+    ["Fetch pull request commits" magit-gh-pulls-fetch-commits]
+    ))
+
+(easy-menu-add-item 'magit-mode-menu
+                    '("Extensions")
+                    magit-gh-pulls-extension-menu)
+
+(defvar magit-gh-pulls-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "# g b") 'magit-gh-pulls-create-branch)
+    (define-key map (kbd "# g f") 'magit-gh-pulls-fetch-commits)
+    map))
+
 ;;;###autoload
 (define-minor-mode magit-gh-pulls-mode "Pull requests support for Magit"
-  :lighter " Pulls" :require 'magit-gh-pulls
+  :lighter " Pulls" :require 'magit-gh-pulls :keymap 'magit-gh-pulls-mode-map
   (or (derived-mode-p 'magit-mode)
       (error "This mode only makes sense with magit"))
   (if magit-gh-pulls-mode
