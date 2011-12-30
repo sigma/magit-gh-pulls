@@ -110,11 +110,28 @@
     ((invalid-pull)
      (error "This pull request refers to invalid reference"))))
 
+(defun magit-gh-pulls-purge-cache ()
+  (let* ((api (gh-pulls-api "api" :sync t :cache t))
+         (cache (oref api :cache))
+         (repo (magit-gh-pulls-guess-repo)))
+    (pcache-map cache (lambda (k v)
+                        (when (string-match
+                               (format "/repos/%s/%s/" (car repo) (cdr repo))
+                               (car k))
+                          (pcache-invalidate cache k))))))
+
+(defun magit-gh-pulls-reload ()
+  (interactive)
+  (magit-with-refresh
+    (magit-gh-pulls-purge-cache)
+    (magit-need-refresh)))
+
 (easy-menu-define magit-gh-pulls-extension-menu
   nil
   "GitHub Pull Requests extension menu"
   '("GitHub Pull Requests"
     :visible magit-gh-pulls-mode
+    ["Reload pull request" magit-gh-pulls-reload]
     ["Create pull request branch" magit-gh-pulls-create-branch]
     ["Fetch pull request commits" magit-gh-pulls-fetch-commits]
     ))
@@ -127,6 +144,7 @@
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "# g b") 'magit-gh-pulls-create-branch)
     (define-key map (kbd "# g f") 'magit-gh-pulls-fetch-commits)
+    (define-key map (kbd "# g g") 'magit-gh-pulls-reload)
     map))
 
 ;;;###autoload
