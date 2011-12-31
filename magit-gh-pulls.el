@@ -70,7 +70,6 @@
                      'request nil 'magit-wash-log "log"
                      (append magit-git-log-options
                              (list
-                              "--reverse"
                               (format "%s..%s" base-sha head-sha))))))))))
   (insert "\n"))
 
