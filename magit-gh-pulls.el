@@ -1,11 +1,11 @@
-;;; magit-pulls.el --- git-pulls plug-in for Magit
+;;; magit-gh-pulls.el --- GitHub pull requests plug-in for Magit
 
 ;; Copyright (C) 2011  Yann Hodique
 
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
 ;; Keywords:
-;; Version: 0.2
-;; Package-Requires: ((gh "0.4.0"))
+;; Version: 0.3
+;; Package-Requires: ((gh "0.4.2") (magit "1.1.0"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -45,21 +45,28 @@
            (repo (magit-gh-pulls-guess-repo))
            (user (car repo))
            (proj (cdr repo))
-           (stubs (oref (gh-pulls-list api user proj) :data)))
+           (stubs (oref (gh-pulls-list api user proj) :data))
+           (branch (magit-get-current-branch)))
       (dolist (stub stubs)
         (let* ((id (oref stub :number))
                (req (oref (gh-pulls-get api user proj id) :data))
                (base-sha (oref (oref req :base) :sha))
+               (base-ref (oref (oref req :base) :ref))
                (head-sha (oref (oref req :head) :sha))
                ;; branch has been deleted in the meantime...
                (invalid (equal (oref (oref req :head) :ref) head-sha))
                (have-commits
                 (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
                      (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
-               (header (propertize (format "\t[%s] %s\n" id (oref req :title))
-                                   'face (cond (have-commits 'default)
-                                               (invalid 'error)
-                                               (t 'italic)))))
+               (header (concat (format "\t[%s@%s] " id
+                                       (if (string= base-ref branch)
+                                           (propertize base-ref
+                                                       'face 'magit-branch)
+                                         base-ref))
+                               (propertize (format "%s\n" (oref req :title))
+                                           'face (cond (have-commits 'default)
+                                                       (invalid 'error)
+                                                       (t 'italic))))))
           (magit-with-section id (cond (have-commits 'pull)
                                        (invalid 'invalid-pull)
                                        (t 'unfetched-pull))
