@@ -5,7 +5,7 @@
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
 ;; Keywords:
 ;; Version: 0.3
-;; Package-Requires: ((gh "0.4.2") (magit "1.1.0"))
+;; Package-Requires: ((gh "0.4.3") (magit "1.1.0"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -33,6 +33,9 @@
 (require 'magit)
 (require 'gh-pulls)
 
+(defun magit-gh-pulls-get-api ()
+  (gh-pulls-api "api" :sync t :cache t :num-retries 1))
+
 (defun magit-gh-pulls-guess-repo ()
   (let* ((cfg (magit-get "magit" "gh-pulls-repo"))
          (split (split-string cfg "/")))
@@ -41,7 +44,7 @@
 (magit-define-inserter gh-pulls ()
   (magit-with-section "Pull Requests" 'pulls
     (insert (propertize "Pull Requests:\n" 'face 'magit-section-title))
-    (let* ((api (gh-pulls-api "api" :sync t :cache t))
+    (let* ((api (magit-gh-pulls-get-api))
            (repo (magit-gh-pulls-guess-repo))
            (user (car repo))
            (proj (cdr repo))
@@ -89,7 +92,7 @@
   (interactive)
   (magit-section-action (item info "ghpr")
     ((pull)
-     (let* ((api (gh-pulls-api "api" :sync t :cache t))
+     (let* ((api (magit-gh-pulls-get-api))
             (req (oref (apply 'gh-pulls-get api info) :data))
             (branch (read-from-minibuffer
                      "Branch name: " (magit-gh-pulls-guess-topic-name req)))
@@ -106,7 +109,7 @@
   (interactive)
   (magit-section-action (item info "ghpr")
     ((unfetched-pull)
-     (let* ((api (gh-pulls-api "api" :sync t :cache t))
+     (let* ((api (magit-gh-pulls-get-api))
             (req (oref (apply 'gh-pulls-get api info) :data))
             (head (oref req :head)))
        (magit-run-git "fetch" (oref (oref head :repo) :git-url)
@@ -117,7 +120,7 @@
      (error "This pull request refers to invalid reference"))))
 
 (defun magit-gh-pulls-purge-cache ()
-  (let* ((api (gh-pulls-api "api" :sync t :cache t))
+  (let* ((api (magit-gh-pulls-get-api))
          (cache (oref api :cache))
          (repo (magit-gh-pulls-guess-repo)))
     (pcache-map cache (lambda (k v)
@@ -128,8 +131,8 @@
 
 (defun magit-gh-pulls-reload ()
   (interactive)
+  (magit-gh-pulls-purge-cache)
   (magit-with-refresh
-    (magit-gh-pulls-purge-cache)
     (magit-need-refresh)))
 
 (easy-menu-define magit-gh-pulls-extension-menu
