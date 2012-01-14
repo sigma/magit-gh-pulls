@@ -175,4 +175,4 @@
   (magit-gh-pulls-mode 1))
 
 (provide 'magit-gh-pulls)
-;;; magit-pulls.el ends here
+;;; magit-gh-pulls.el ends here
