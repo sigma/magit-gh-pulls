@@ -78,13 +78,21 @@
                (have-commits
                 (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
                      (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
+               (applied (and have-commits
+                             (not (magit-git-string
+                                   "rev-list"
+                                   "--cherry-pick" "--right-only"
+                                   (format "HEAD...%s" head-sha)
+                                   "--not"
+                                   (format "%s" base-sha)))))
                (header (concat (format "\t[%s@%s] " id
                                        (if (string= base-ref branch)
                                            (propertize base-ref
                                                        'face 'magit-branch)
                                          base-ref))
                                (propertize (format "%s\n" (oref req :title))
-                                           'face (cond (have-commits 'default)
+                                           'face (cond (applied 'widget-inactive)
+                                                       (have-commits 'default)
                                                        (invalid 'error)
                                                        (t 'italic))))))
           (magit-with-section id (cond (have-commits 'pull)
@@ -92,7 +100,7 @@
                                        (t 'unfetched-pull))
             (magit-set-section-info (list user proj id))
             (insert header)
-            (when have-commits
+            (when (and have-commits (not applied))
               (apply #'magit-git-section
                      'request nil 'magit-wash-log "log"
                      (append magit-git-log-options
