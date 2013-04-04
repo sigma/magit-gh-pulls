@@ -49,6 +49,7 @@
 
 (require 'magit)
 (require 'gh-pulls)
+(require 'pcache)
 
 (defun magit-gh-pulls-get-api ()
   (gh-pulls-api "api" :sync t :cache t :num-retries 1))
