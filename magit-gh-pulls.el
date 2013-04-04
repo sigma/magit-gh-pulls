@@ -191,10 +191,8 @@
   (or (derived-mode-p 'magit-mode)
       (error "This mode only makes sense with magit"))
   (if magit-gh-pulls-mode
-      (progn
-        (add-hook 'magit-before-insert-stashes-hook 'magit-insert-gh-pulls nil t))
-    (progn
-      (remove-hook 'magit-before-insert-stashes-hook 'magit-insert-gh-pulls t)))
+      (add-hook  'magit-before-insert-stashes-hook 'magit-insert-gh-pulls nil t)
+    (remove-hook 'magit-before-insert-stashes-hook 'magit-insert-gh-pulls t))
   (when (called-interactively-p 'any)
     (magit-refresh)))
 
