@@ -181,9 +181,13 @@
     (define-key map (kbd "# g g") 'magit-gh-pulls-reload)
     map))
 
+(defvar magit-gh-pulls-mode-lighter " Pulls")
+
 ;;;###autoload
 (define-minor-mode magit-gh-pulls-mode "Pull requests support for Magit"
-  :lighter " Pulls" :require 'magit-gh-pulls :keymap 'magit-gh-pulls-mode-map
+  :lighter  magit-gh-pulls-mode-lighter
+  :require 'magit-gh-pulls
+  :keymap  'magit-gh-pulls-mode-map
   (or (derived-mode-p 'magit-mode)
       (error "This mode only makes sense with magit"))
   (if magit-gh-pulls-mode
