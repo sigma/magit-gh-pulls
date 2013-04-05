@@ -203,4 +203,7 @@
   (magit-gh-pulls-mode 1))
 
 (provide 'magit-gh-pulls)
+;; Local Variables:
+;; indent-tabs-mode: nil
+;; End:
 ;;; magit-gh-pulls.el ends here
