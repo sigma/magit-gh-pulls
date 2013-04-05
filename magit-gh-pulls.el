@@ -61,7 +61,7 @@
 
 (magit-define-inserter gh-pulls ()
   (magit-with-section "Pull Requests" 'pulls
-    (insert (propertize "Pull Requests:\n" 'face 'magit-section-title))
+    (insert (propertize "Pull Requests:" 'face 'magit-section-title) "\n")
     (let* ((api (magit-gh-pulls-get-api))
            (repo (magit-gh-pulls-guess-repo))
            (user (car repo))
