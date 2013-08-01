@@ -5,7 +5,7 @@
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
 ;; Keywords: tools
 ;; Version: 0.3
-;; Package-Requires: ((gh "0.4.3") (magit "1.1.0") (pcache "0.2.3")))
+;; Package-Requires: ((gh "0.4.3") (magit "1.1.0") (pcache "0.2.3") (s "1.6.1"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -50,14 +50,32 @@
 (require 'magit)
 (require 'gh-pulls)
 (require 'pcache)
+(require 's)
 
 (defun magit-gh-pulls-get-api ()
   (gh-pulls-api "api" :sync t :cache t :num-retries 1))
 
+(defun magit-gh-pulls-get-repo-from-config ()
+  (let* ((cfg (magit-get "magit" "gh-pulls-repo")))
+    (when cfg
+      (let* ((split (split-string cfg "/")))
+        (cons (car split) (cadr split))))))
+
+(defun magit-gh-pulls-guess-repo-from-origin ()
+  (let ((url (magit-get "remote" "origin" "url")))
+    (when url
+      (let ((creds (cond
+                    ((s-matches? "^git@github.com" url)
+                     (s-match "^git@github.com:\\(.+\\)/\\(.+\\).git$" url))
+
+                    ((s-matches? "^https?://github.com" url)
+                     (s-match "^https://github.com/\\(.+\\)/\\(.+\\)$" url)))))
+        (when creds
+          (cons (cadr creds) (caddr creds)))))))
+
 (defun magit-gh-pulls-guess-repo ()
-  (let* ((cfg (magit-get "magit" "gh-pulls-repo"))
-         (split (split-string cfg "/")))
-    (cons (car split) (cadr split))))
+  (or (magit-gh-pulls-get-repo-from-config)
+      (magit-gh-pulls-guess-repo-from-origin)))
 
 (magit-define-inserter gh-pulls ()
   (magit-with-section "Pull Requests" 'pulls
