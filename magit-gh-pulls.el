@@ -5,7 +5,7 @@
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
 ;; Keywords: tools
 ;; Version: 0.3
-;; Package-Requires: ((gh "0.4.3") (magit "1.1.0"))
+;; Package-Requires: ((gh "0.4.3") (magit "1.1.0") (pcache "0.2.3")))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
