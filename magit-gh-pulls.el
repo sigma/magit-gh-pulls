@@ -53,7 +53,7 @@
 (require 's)
 
 (defun magit-gh-pulls-get-api ()
-  (gh-pulls-api "api" :sync t :cache t :num-retries 1))
+  (gh-pulls-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
 (defun magit-gh-pulls-get-repo-from-config ()
   (let* ((cfg (magit-get "magit" "gh-pulls-repo")))
@@ -77,57 +77,64 @@
   (or (magit-gh-pulls-get-repo-from-config)
       (magit-gh-pulls-guess-repo-from-origin)))
 
-(magit-define-inserter gh-pulls ()
-  (magit-with-section "Pull Requests" 'pulls
-   (let ((repo (magit-gh-pulls-guess-repo)))
-     (when repo
-       (let* ((api (magit-gh-pulls-get-api))
-              (user (car repo))
-              (proj (cdr repo))
-              (stubs (oref (gh-pulls-list api user proj) :data))
-              (branch (magit-get-current-branch)))
-         (when (> (length stubs) 0)
-           (insert (propertize "Pull Requests:" 'face 'magit-section-title) "\n")
-           (dolist (stub stubs)
-             (let* ((id (oref stub :number))
-                    (req (oref (gh-pulls-get api user proj id) :data))
-                    (base-sha (oref (oref req :base) :sha))
-                    (base-ref (oref (oref req :base) :ref))
-                    (head-sha (oref (oref req :head) :sha))
-                    ;; branch has been deleted in the meantime...
-                    (invalid (equal (oref (oref req :head) :ref) head-sha))
-                    (have-commits
-                     (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
-                          (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
-                    (applied (and have-commits
-                                  (not (magit-git-string
-                                        "rev-list"
-                                        "--cherry-pick" "--right-only"
-                                        (format "HEAD...%s" head-sha)
-                                        "--not"
-                                        (format "%s" base-sha)))))
-                    (header (concat (format "\t[%s@%s] " id
-                                            (if (string= base-ref branch)
-                                                (propertize base-ref
-                                                            'face 'magit-branch)
-                                              base-ref))
-                                    (propertize (format "%s\n" (oref req :title))
-                                                'face (cond (applied 'widget-inactive)
-                                                            (have-commits 'default)
-                                                            (invalid 'error)
-                                                            (t 'italic))))))
-               (magit-with-section id (cond (have-commits 'pull)
-                                            (invalid 'invalid-pull)
-                                            (t 'unfetched-pull))
-                 (magit-set-section-info (list user proj id))
-                 (insert header)
-                 (when (and have-commits (not applied))
-                   (apply #'magit-git-section
-                          'request nil 'magit-wash-log "log"
-                          (append magit-git-log-options
-                                  (list
-                                   (format "%s..%s" base-sha head-sha)))))))))))))
-  (insert "\n"))
+(magit-add-section-hook
+ 'magit-status-sections-hook
+ (lambda ()
+   (condition-case print-section
+       (progn
+         (let* ((api (magit-gh-pulls-get-api))
+                (repo (magit-gh-pulls-guess-repo)))
+           (when repo
+             (let* ((user (car repo))
+                    (proj (cdr repo))
+                    (stubs (oref (gh-pulls-list api user proj) :data))
+                    (branch (magit-get-current-branch)))
+               (when (> (length stubs) 0)
+                 (magit-with-section (section stubs 'pulls "Pull Requests:" t)
+                   (dolist (stub stubs)
+                     (let* ((id (oref stub :number))
+                            (req (oref (gh-pulls-get api user proj id) :data))
+                            (base-sha (oref (oref req :base) :sha))
+                            (base-ref (oref (oref req :base) :ref))
+                            (head-sha (oref (oref req :head) :sha))
+                            ;; branch has been deleted in the meantime...
+                            (invalid (equal (oref (oref req :head) :ref) head-sha))
+                            (have-commits
+                             (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
+                                  (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
+                            (applied (and have-commits
+                                          (not (magit-git-string
+                                                "rev-list"
+                                                "--cherry-pick" "--right-only"
+                                                (format "HEAD...%s" head-sha)
+                                                "--not"
+                                                (format "%s" base-sha)))))
+                            (header (concat (format "\t[%s@%s] " id
+                                                    (if (string= base-ref branch)
+                                                        (propertize base-ref
+                                                                    'face 'magit-branch)
+                                                      base-ref))
+                                            (propertize (format "%s\n" (oref req :title))
+                                                        'face (cond (applied 'widget-inactive)
+                                                                    (have-commits 'default)
+                                                                    (invalid 'error)
+                                                                    (t 'italic)))))
+                            (info (list user proj id)))
+                       (cond (have-commits
+                              (magit-with-section (section pull info)
+                                (insert header)
+                                (when (and have-commits (not applied))
+                                  (magit-git-insert-section (request)
+                                      (apply-partially 'magit-wash-log 'unique)
+                                    "log" "--format=format:%h %s" (format "%s..%s" base-sha head-sha)))))
+                             (invalid (magit-with-section (section invalid-pull info)
+                                        (insert header)))
+                             (t (magit-with-section (section unfetched-pull info)
+                                  (insert header))))))
+                   (when (> (length stubs) 0)
+                     (insert "\n"))))))))
+     (error nil)))
+ 'magit-insert-stashes)
 
 (defun magit-gh-pulls-guess-topic-name (req)
   (let ((user (oref (oref req :user) :login))
@@ -136,8 +143,8 @@
 
 (defun magit-gh-pulls-create-branch ()
   (interactive)
-  (magit-section-action (item info "ghpr")
-    ((pull)
+  (magit-section-action pr-create-branch (info)
+    (pull
      (let* ((api (magit-gh-pulls-get-api))
             (req (oref (apply 'gh-pulls-get api info) :data))
             (branch (read-from-minibuffer
@@ -146,15 +153,15 @@
                                   (oref (oref req :base) :ref))))
        (magit-create-branch branch base)
        (magit-merge (oref (oref req :head) :sha))))
-    ((unfetched-pull)
+    (unfetched-pull
      (error "Please fetch pull request commits first"))
-    ((invalid-pull)
+    (invalid-pull
      (error "This pull request refers to invalid reference"))))
 
 (defun magit-gh-pulls-merge-pull-request ()
   (interactive)
-  (magit-section-action (item info "ghpr")
-    ((pull)
+  (magit-section-action pr-merge (info)
+    (pull
      (let* ((api (magit-gh-pulls-get-api))
             (req (oref (apply 'gh-pulls-get api info) :data))
             (branch (magit-gh-pulls-guess-topic-name req))
@@ -164,23 +171,22 @@
        (magit-checkout base)
        (magit-merge branch)
        (magit-delete-branch branch)))
-    ((unfetched-pull)
+    (unfetched-pull
      (error "Please fetch pull request commits first"))
-    ((invalid-pull)
+    (invalid-pull
      (error "This pull request refers to invalid reference"))))
 
 (defun magit-gh-pulls-fetch-commits ()
   (interactive)
-  (magit-section-action (item info "ghpr")
-    ((unfetched-pull)
+  (magit-section-action pr-fetch-commits (info)
+    (unfetched-pull
      (let* ((api (magit-gh-pulls-get-api))
             (req (oref (apply 'gh-pulls-get api info) :data))
             (head (oref req :head)))
        (magit-run-git "fetch" (oref (oref head :repo) :git-url)
                       (oref head :ref))))
-    ((pull)
-     nil)
-    ((invalid-pull)
+    (pull nil)
+    (invalid-pull
      (error "This pull request refers to invalid reference"))))
 
 (defun magit-gh-pulls-purge-cache ()
@@ -196,8 +202,7 @@
 (defun magit-gh-pulls-reload ()
   (interactive)
   (magit-gh-pulls-purge-cache)
-  (magit-with-refresh
-    (magit-need-refresh)))
+  (magit-refresh))
 
 (easy-menu-define magit-gh-pulls-extension-menu
   nil
@@ -230,9 +235,6 @@
   :keymap  'magit-gh-pulls-mode-map
   (or (derived-mode-p 'magit-mode)
       (error "This mode only makes sense with magit"))
-  (if magit-gh-pulls-mode
-      (add-hook  'magit-before-insert-stashes-hook 'magit-insert-gh-pulls nil t)
-    (remove-hook 'magit-before-insert-stashes-hook 'magit-insert-gh-pulls t))
   (when (called-interactively-p 'any)
     (magit-refresh)))
 
