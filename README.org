@@ -26,14 +26,14 @@
 
    : [pull-request-number@branch-name] Pull request name
 
-   By highlighting the desired PR and pressing =# g f=. This will fetch the
-   commits associated with the PR and they will appear under the PR. These are
-   the real commits that you can view, apply, cherry-pick etc.
+   Highlighting the desired PR and pressing =# g f= will fetch the commits
+   associated with the PR. These are the real commits that you can view, apply,
+   cherry-pick etc.
 
-   From this point magit-gh-pulls offers you to options:
+   From this point magit-gh-pulls offers you two options:
 
-   - press =# g b= on the PR to create a topic branch for this PR. After
-     evaluating the PR you can merge it back into your branch using Magit.
+   - press =# g b= on the PR to create a topic branch for this PR. After testing
+     the PR you can merge it back into your branch using Magit.
    - press =# g m= to merge the PR on top of the currently checked out branch.
      This is convenient if pull request can be merged by fast-forwarding and
      no testing is needed (or you can test from your branch directly). A nice
