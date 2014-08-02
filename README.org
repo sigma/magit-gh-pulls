@@ -1,0 +1,46 @@
+* magit-gh-pulls
+
+  magit-gh-pulls is a [[https://github.com/magit/magit][Magit]] extension that allows you to conveniently manipulate
+  Github's pull requests from Emacs.
+
+** Installation
+
+   magit-gh-pulls is available on [[http://melpa.milkbox.net/][MELPA]]. To install it do the following:
+
+   : M-x package-install RET magit-gh-pulls RET
+
+   Now that the package is installed you have to put the following code to your
+   =init.el=:
+
+   #+BEGIN_SRC elisp
+(require 'magit-gh-pulls)
+(add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
+   #+END_SRC
+
+** Usage
+
+   In =magit-status= window press =# g g= to refresh the list of pull requests.
+   magit-gh-pulls automatically infers credentials from the URL of the
+   repository. If there are some PRs available, a new section will appear
+   called *Pull Requests*. Each item in this section has the following form:
+
+   : [pull-request-number@branch-name] Pull request name
+
+   By highlighting the desired PR and pressing =# g f=. This will fetch the
+   commits associated with the PR and they will appear under the PR. These are
+   the real commits that you can view, apply, cherry-pick etc.
+
+   From this point magit-gh-pulls offers you to options:
+
+   - press =# g b= on the PR to create a topic branch for this PR. After
+     evaluating the PR you can merge it back into your branch using Magit.
+   - press =# g m= to merge the PR on top of the currently checked out branch.
+     This is convenient if pull request can be merged by fast-forwarding and
+     no testing is needed (or you can test from your branch directly). A nice
+     benefit of this approach over merging from Github interface is that in
+     case of FF no merge commit is produced, so history stays nice and linear.
+
+** License
+
+   Copyright © 2011-2014 Yann Hodique. Distributed under the GNU General Public
+   License ver. 2. See the header of the [[https://github.com/sigma/magit-gh-pulls/blob/master/magit-gh-pulls.el][source file]].
