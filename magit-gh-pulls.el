@@ -69,7 +69,7 @@
                      (s-match "^git@github.com:\\(.+\\)/\\([^.]+\\)\\(.git\\)$" url))
 
                     ((s-matches? "^https?://github.com" url)
-                     (s-match "^https://github.com/\\(.+\\)/\\(.+\\)$" url)))))
+                     (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)/?$" url)))))
         (when creds
           (cons (cadr creds) (caddr creds)))))))
 
@@ -82,10 +82,10 @@
  (lambda ()
    (condition-case print-section
        (progn
-         (let* ((api (magit-gh-pulls-get-api))
-                (repo (magit-gh-pulls-guess-repo)))
+         (let* ((repo (magit-gh-pulls-guess-repo)))
            (when repo
-             (let* ((user (car repo))
+             (let* ((api (magit-gh-pulls-get-api))
+                    (user (car repo))
                     (proj (cdr repo))
                     (stubs (oref (gh-pulls-list api user proj) :data))
                     (branch (magit-get-current-branch)))
