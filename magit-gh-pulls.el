@@ -62,17 +62,23 @@
       (let* ((split (split-string cfg "/")))
         (cons (car split) (cadr split))))))
 
-(defun magit-gh-pulls-guess-repo-from-origin ()
-  (let ((url (magit-get "remote" "origin" "url")))
-    (when url
-      (let ((creds (cond
-                    ((s-matches? "github.com:" url)
-                     (s-match "github.com:\\(.+\\)/\\([^.]+\\)\\(.git\\)$" url))
+(defun magit-gh-pulls-parse-url (url)
+  (let ((creds (cond
+                ((s-matches? "github.com:" url)
+                 (s-match "github.com:\\(.+\\)/\\([^.]+\\)\\(.git\\)$" url))
 
-                    ((s-matches? "^https?://github.com" url)
-                     (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)/?$" url)))))
-        (when creds
-          (cons (cadr creds) (caddr creds)))))))
+                ((s-matches? "^https?://github.com" url)
+                 (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)/?$" url)))))
+    (when creds
+      (cons (cadr creds) (caddr creds)))))
+
+(defun magit-gh-pulls-guess-repo-from-origin ()
+  (let ((creds nil))
+    (dolist (remote (magit-git-lines "remote") creds)
+      (let ((parsed (magit-gh-pulls-parse-url
+                     (magit-get "remote" remote "url"))))
+        (when parsed
+          (setq creds parsed))))))
 
 (defun magit-gh-pulls-guess-repo ()
   (or (magit-gh-pulls-get-repo-from-config)
