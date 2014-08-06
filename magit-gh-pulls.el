@@ -201,8 +201,11 @@
 
 (defun magit-gh-pulls-reload ()
   (interactive)
-  (magit-gh-pulls-purge-cache)
-  (magit-refresh))
+  (let ((creds (magit-gh-pulls-guess-repo)))
+    (if (not (and creds (car creds) (cdr creds)))
+        (message "Remote repository is not configured or incorrect.")
+      (magit-gh-pulls-purge-cache)
+      (magit-refresh))))
 
 (easy-menu-define magit-gh-pulls-extension-menu
   nil
