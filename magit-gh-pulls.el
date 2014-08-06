@@ -66,8 +66,8 @@
   (let ((url (magit-get "remote" "origin" "url")))
     (when url
       (let ((creds (cond
-                    ((s-matches? "^git@github.com" url)
-                     (s-match "^git@github.com:\\(.+\\)/\\([^.]+\\)\\(.git\\)$" url))
+                    ((s-matches? "github.com:" url)
+                     (s-match "github.com:\\(.+\\)/\\([^.]+\\)\\(.git\\)$" url))
 
                     ((s-matches? "^https?://github.com" url)
                      (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)/?$" url)))))
