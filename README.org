@@ -42,5 +42,6 @@
 
 ** License
 
-   Copyright © 2011-2014 Yann Hodique. Distributed under the GNU General Public
-   License ver. 2. See the header of the [[https://github.com/sigma/magit-gh-pulls/blob/master/magit-gh-pulls.el][source file]].
+   Copyright © 2011-2014 Yann Hodique, Alexander Yakushev and [[https://github.com/sigma/magit-gh-pulls/graphs/contributors][contributors]].
+   Distributed under the GNU General Public License ver. 2. See the header of
+   the [[https://github.com/sigma/magit-gh-pulls/blob/master/magit-gh-pulls.el][source file]].

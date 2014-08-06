@@ -1,6 +1,6 @@
 ;;; magit-gh-pulls.el --- GitHub pull requests extension for Magit
 
-;; Copyright (C) 2011  Yann Hodique
+;; Copyright (C) 2011-2014 Yann Hodique, Alexander Yakushev
 
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
 ;; Keywords: tools
