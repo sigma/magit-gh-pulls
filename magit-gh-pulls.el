@@ -72,7 +72,9 @@
                  (s-match "github.com:\\(.+\\)/\\([^.]+\\)\\(.git\\)?$" url))
 
                 ((s-matches? "^https?://github.com" url)
-                 (s-match "^https://github.com/\\(.+\\)/\\([^./]+\\)\\(.git\\)?/?$" url)))))
+                 (s-match "^https://github.com/\\(.+\\)/\\([^./]+\\)\\(.git\\)?/?$" url))
+                ((s-matches? "git://github.com/" url)
+                 (s-match "git://github.com/\\(.+\\)/\\([^.]+\\)\\(.git\\)?$" url)))))
     (when creds
       (cons (cadr creds) (caddr creds)))))
 
