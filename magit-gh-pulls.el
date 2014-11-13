@@ -57,6 +57,11 @@
 (require 'pcache)
 (require 's)
 
+(defvar magit-gh-pulls-maybe-filter-pulls 'identity
+  "Filter function which should validate pulls you want to be
+  viewed in magit. It receives a list of pull requests and should
+  return a list of pull requests.")
+
 (defun magit-gh-pulls-get-api ()
   (gh-pulls-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
@@ -98,7 +103,8 @@
             (let* ((api (magit-gh-pulls-get-api))
                    (user (car repo))
                    (proj (cdr repo))
-                   (stubs (oref (gh-pulls-list api user proj) :data))
+                   (stubs (funcall magit-gh-pulls-maybe-filter-pulls
+                           (oref (gh-pulls-list api user proj) :data)))
                    (branch (magit-get-current-branch)))
               (when (> (length stubs) 0)
                 (magit-with-section (section stubs 'pulls "Pull Requests:" t)
