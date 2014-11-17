@@ -210,6 +210,39 @@
                                (car k))
                           (pcache-invalidate cache k))))))
 
+
+(defun magit-gh-pulls-build-req (user proj)
+  (let ((current (magit-get-current-branch)))
+    (let* ((base
+            (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
+                           :repo (make-instance 'gh-repos-repo :name proj)
+                           :ref (completing-read "Base (master):" '() nil nil nil nil "master")))
+           (head
+            (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
+                           :repo (make-instance 'gh-repos-repo :name proj)
+                           :ref (completing-read (format "Head (%s):" current) '() nil nil nil nil current)))
+           (title (read-string "Title:"))
+           (body (read-string "Description:"))
+           (req (make-instance 'gh-pulls-request :head head :base base)))
+      (gh-object-read-into req `((body ,body)
+                                (title ,title)))
+      req))
+  )
+
+
+;(magit-gh-pulls-create-pull-request)
+
+(defun magit-gh-pulls-create-pull-request ()
+  (interactive)
+  (let ((repo (magit-gh-pulls-guess-repo)))
+    (when repo
+      (let* ((current-branch (magit-get-current-branch))
+            (api (magit-gh-pulls-get-api))
+            (user (car repo))
+            (proj (cdr repo))
+            (req (magit-gh-pulls-build-req user proj)))
+       (gh-pulls-new api user proj req)))))
+
 (defun magit-gh-pulls-reload ()
   (interactive)
   (let ((creds (magit-gh-pulls-guess-repo)))
@@ -238,6 +271,7 @@
     (define-key map (kbd "# g f") 'magit-gh-pulls-fetch-commits)
     (define-key map (kbd "# g g") 'magit-gh-pulls-reload)
     (define-key map (kbd "# g m") 'magit-gh-pulls-merge-pull-request)
+    (define-key map (kbd "# g c") 'magit-gh-pulls-create-pull-request)
     map))
 
 (defvar magit-gh-pulls-mode-lighter " Pulls")
