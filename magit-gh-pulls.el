@@ -212,7 +212,7 @@
 
 
 (defun magit-gh-pulls-build-req (user proj)
-  (let ((current (magit-get-current-branch)))
+  (let ((current (replace-regexp-in-string "/origin" (magit-get-remote/branch (magit-get-current-branch)))))
     (let* ((base
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
@@ -223,14 +223,7 @@
                            :ref (completing-read (format "Head (%s):" current) '() nil nil nil nil current)))
            (title (read-string "Title:"))
            (body (read-string "Description:"))
-           (req (make-instance 'gh-pulls-request :head head :base base)))
-      (gh-object-read-into req `((body ,body)
-                                (title ,title)))
-      req))
-  )
-
-
-;(magit-gh-pulls-create-pull-request)
+           (req (make-instance 'gh-pulls-request :head head :base base :body body :title title))) req)))
 
 (defun magit-gh-pulls-create-pull-request ()
   (interactive)
@@ -241,7 +234,7 @@
             (user (car repo))
             (proj (cdr repo))
             (req (magit-gh-pulls-build-req user proj)))
-       (gh-pulls-new api user proj req)))))
+       (gh-pulls-new api user proj (make-instance 'gh-pulls-request))))))
 
 (defun magit-gh-pulls-reload ()
   (interactive)
