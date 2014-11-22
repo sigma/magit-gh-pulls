@@ -212,8 +212,7 @@
 
 
 (defun magit-gh-pulls-build-req (user proj)
-  (let ((current (replace-regexp-in-string "origin/" ""
-                                           (magit-get-remote/branch (magit-get-current-branch)))))
+  (let ((current (magit-get-remote/branch)))
     (let* ((base
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
