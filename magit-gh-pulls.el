@@ -212,8 +212,9 @@
 
 
 (defun magit-gh-pulls-build-req (user proj)
-  (let ((current (or (replace-regexp-in-string "origin/" "" (magit-get-remote/branch))
-                     (magit-get-current-branch))))
+  (let ((current (replace-regexp-in-string "origin/" ""
+                                           (or (magit-get-remote/branch)
+                                               (magit-get-current-branch)))))
     (let* ((base
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
@@ -222,9 +223,10 @@
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
                            :ref (completing-read (format "Head (%s):" current) '() nil nil nil nil current)))
-           (title (read-string "Title:"))
-           (body (read-string "Description:"))
-           (req (make-instance 'gh-pulls-request :head head :base base :body body :title title))) req)))
+           (title (read-string "Title: "))
+           (body (read-string "Description: "))
+           (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
+      req)))
 
 (defun magit-gh-pulls-create-pull-request ()
   (interactive)
@@ -234,8 +236,9 @@
             (api (magit-gh-pulls-get-api))
             (user (car repo))
             (proj (cdr repo))
-            (req (magit-gh-pulls-build-req user proj)))
-       (gh-pulls-new api user proj req)))))
+            (req (magit-gh-pulls-build-req user proj))
+            (a (gh-pulls-new api user proj req)))
+        (kill-new (oref (oref a :data) :html-url))))))
 
 (defun magit-gh-pulls-reload ()
   (interactive)
