@@ -44,6 +44,7 @@
 ;; # g f --- fetches the commits associated with the pull request at point
 ;; # g b --- helps you creating a topic branch from a review request
 ;; # g m --- merges the PR on top of the current branch
+;; # g c --- creates a PR from the current branch
 
 ;; Then, you can do whatever you want with the commit objects associated with
 ;; the pull request (merge, cherry-pick, diff, ...)
@@ -215,6 +216,36 @@
                                (car k))
                           (pcache-invalidate cache k))))))
 
+
+(defun magit-gh-pulls-build-req (user proj)
+  (let ((current (replace-regexp-in-string "origin/" ""
+                                           (or (magit-get-remote/branch)
+                                               (magit-get-current-branch)))))
+    (let* ((base
+            (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
+                           :repo (make-instance 'gh-repos-repo :name proj)
+                           :ref (completing-read "Base (master):" '() nil nil nil nil "master")))
+           (head
+            (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
+                           :repo (make-instance 'gh-repos-repo :name proj)
+                           :ref (completing-read (format "Head (%s):" current) '() nil nil nil nil current)))
+           (title (read-string "Title: "))
+           (body (read-string "Description: "))
+           (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
+      req)))
+
+(defun magit-gh-pulls-create-pull-request ()
+  (interactive)
+  (let ((repo (magit-gh-pulls-guess-repo)))
+    (when repo
+      (let* ((current-branch (magit-get-current-branch))
+            (api (magit-gh-pulls-get-api))
+            (user (car repo))
+            (proj (cdr repo))
+            (req (magit-gh-pulls-build-req user proj))
+            (a (gh-pulls-new api user proj req)))
+        (kill-new (oref (oref a :data) :html-url))))))
+
 (defun magit-gh-pulls-reload ()
   (interactive)
   (let ((creds (magit-gh-pulls-guess-repo)))
@@ -243,6 +274,7 @@
     (define-key map (kbd "# g f") 'magit-gh-pulls-fetch-commits)
     (define-key map (kbd "# g g") 'magit-gh-pulls-reload)
     (define-key map (kbd "# g m") 'magit-gh-pulls-merge-pull-request)
+    (define-key map (kbd "# g c") 'magit-gh-pulls-create-pull-request)
     map))
 
 (defvar magit-gh-pulls-mode-lighter " Pulls")
