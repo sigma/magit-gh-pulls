@@ -206,6 +206,19 @@
     (invalid-pull
      (error "This pull request refers to invalid reference"))))
 
+(defun magit-gh-pulls-url-for-pull (info)
+  "Return github url for a pull request using INFO."
+  (let ((url "https://github.com/%s/%s/pull/%s"))
+    (apply 'format url info)))
+
+(defun magit-gh-pulls-open-in-browser ()
+  (interactive)
+  (magit-section-action pr-browse (info)
+    (pull
+     (browse-url (magit-gh-pulls-url-for-pull info)))
+    (unfetched-pull
+     (browse-url (magit-gh-pulls-url-for-pull info)))))
+
 (defun magit-gh-pulls-purge-cache ()
   (let* ((api (magit-gh-pulls-get-api))
          (cache (oref api :cache))
@@ -262,6 +275,7 @@
     ["Reload pull request" magit-gh-pulls-reload]
     ["Create pull request branch" magit-gh-pulls-create-branch]
     ["Fetch pull request commits" magit-gh-pulls-fetch-commits]
+    ["Open pull request in browser" magit-gh-pulls-open-in-browser]
     ))
 
 (easy-menu-add-item 'magit-mode-menu
@@ -275,6 +289,7 @@
     (define-key map (kbd "# g g") 'magit-gh-pulls-reload)
     (define-key map (kbd "# g m") 'magit-gh-pulls-merge-pull-request)
     (define-key map (kbd "# g c") 'magit-gh-pulls-create-pull-request)
+    (define-key map (kbd "# g o") 'magit-gh-pulls-open-in-browser)
     map))
 
 (defvar magit-gh-pulls-mode-lighter " Pulls")
