@@ -63,6 +63,9 @@
   viewed in magit. It receives a list of pull requests and should
   return a list of pull requests.")
 
+(defvar magit-gh-pulls-collapse-commits nil
+  "Collapse commits in pull requests listing.")
+
 (defun magit-gh-pulls-get-api ()
   (gh-pulls-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
@@ -139,7 +142,7 @@
                                                                    (t 'italic)))))
                            (info (list user proj id)))
                       (cond (have-commits
-                             (magit-with-section (section pull info)
+                             (magit-with-section (section pull info nil nil magit-gh-pulls-collapse-commits)
                                (insert header)
                                (when (and have-commits (not applied))
                                  (magit-git-insert-section (request)
