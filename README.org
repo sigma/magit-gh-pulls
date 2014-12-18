@@ -19,26 +19,49 @@
 
 ** Usage
 
-   In =magit-status= window press =# g g= to refresh the list of pull requests.
-   magit-gh-pulls automatically infers credentials from the URL of the
-   repository. If there are some PRs available, a new section will appear
-   called *Pull Requests*. Each item in this section has the following form:
+***** Existing Pull Requests
 
-   : [pull-request-number@branch-name] Pull request name
+      In =magit-status= window press =# g g= to refresh the list of pull requests.
+      magit-gh-pulls automatically infers credentials from the URL of the
+      repository. If there are some PRs available, a new section will appear
+      called *Pull Requests*. Each item in this section has the following form:
 
-   Highlighting the desired PR and pressing =# g f= will fetch the commits
-   associated with the PR. These are the real commits that you can view, apply,
-   cherry-pick etc.
+      : [pull-request-number@branch-name] Pull request name
 
-   From this point magit-gh-pulls offers you two options:
+      Highlighting the desired PR and pressing =# g f= will fetch the commits
+      associated with the PR. These are the real commits that you can view, apply,
+      cherry-pick etc.
 
-   - press =# g b= on the PR to create a topic branch for this PR. After testing
-     the PR you can merge it back into your branch using Magit.
-   - press =# g m= to merge the PR on top of the currently checked out branch.
-     This is convenient if pull request can be merged by fast-forwarding and
-     no testing is needed (or you can test from your branch directly). A nice
-     benefit of this approach over merging from Github interface is that in
-     case of FF no merge commit is produced, so history stays nice and linear.
+      From this point magit-gh-pulls offers you two options:
+
+      - press =# g b= on the PR to create a topic branch for this PR. After testing
+        the PR you can merge it back into your branch using Magit.
+      - press =# g m= to merge the PR on top of the currently checked out branch.
+        This is convenient if pull request can be merged by fast-forwarding and
+        no testing is needed (or you can test from your branch directly). A nice
+        benefit of this approach over merging from Github interface is that in
+        case of FF no merge commit is produced, so history stays nice and linear.
+
+***** Creating Pull Requests
+
+      In =magit-status= press =# g c= to create a new pull request.  You will be asked
+      for the base commit and the head commit for the pull-request.  They will default
+      to the default branch of your repository and current head respecively.  Enter a title
+      and description for the pull request, and magit-gh-pulls will connect to GitHub to
+      create the pull request.  By default,
+      the new pullrequest will be opened on github.com in the browser.  You may
+      turn this behavior off by customizing =magit-gh-pulls-open-new-pr-in-browser=
+
+      The base and head of the pull request must already be present on github.
+      If you haven't yet pushed your local commits, creating the pull request will fail.
+      You can push with magit's standard =P P=.
+
+      
+***** Miscellaneous
+
+      - =# g o= Will open the selected a pull request in your default browser on GitHub.
+      - =j q= will jump to the Pull Requests section in the =magit-status= window.
+        
 
 ** License
 

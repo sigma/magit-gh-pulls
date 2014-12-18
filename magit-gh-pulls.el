@@ -3,8 +3,8 @@
 ;; Copyright (C) 2011-2015  Yann Hodique, Alexander Yakushev
 
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
-;; Keywords: git tools
-;; Version: 0.5
+;; Keywords: tools
+;; Version: 0.4.2
 ;; URL: https://github.com/sigma/magit-gh-pulls
 ;; Package-Requires: ((emacs "24") (gh "0.4.3") (magit "2.1.0") (pcache "0.2.3") (s "1.6.1"))
 
@@ -39,15 +39,20 @@
 ;; (require 'magit-gh-pulls)
 ;; (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
 
-;; There are currently 4 bindings for pull requests:
+;; These are the bindings for pull requests, defined in magit-gh-pulls-mode-map:
 ;; # g g --- refreshes the list of pull requests
 ;; # g f --- fetches the commits associated with the pull request at point
 ;; # g b --- helps you creating a topic branch from a review request
 ;; # g m --- merges the PR on top of the current branch
 ;; # g c --- creates a PR from the current branch
+;; # g o --- opens a pull request on GitHub in your default browser
 
 ;; Then, you can do whatever you want with the commit objects associated with
 ;; the pull request (merge, cherry-pick, diff, ...)
+
+;; When you create a new pull request, it will automatically open it on GitHub
+;; in your default browser.  You can alter this behavior by customizing
+;; magit-gh-pulls-open-new-pr-in-browser
 
 ;;; Code:
 
@@ -58,6 +63,15 @@
 (require 'pcache)
 (require 'gh)
 (require 's)
+
+(defgroup magit-gh-pulls nil
+  "Github.com pull-requests for Magit."
+  :group 'magit-extensions)
+
+(defcustom magit-gh-pulls-open-new-pr-in-browser t
+  "Open newly-created pull-requests automatically in the browser"
+  :group 'magit-gh-pulls
+  :type 'boolean)
 
 (defvar magit-gh-pulls-maybe-filter-pulls 'identity
   "Filter function which should validate pulls you want to be
@@ -76,16 +90,89 @@
       (let* ((split (split-string cfg "/")))
         (cons (car split) (cadr split))))))
 
-(defun magit-gh-pulls-parse-url (url)
-  (let ((creds (s-match "github.com[:/]\\([^/]+\\)/\\([^/]+\\)/?$" url)))
-    (when creds
-      (cons (cadr creds) (s-chop-suffix ".git" (caddr creds))))))
+
+;;Find all the Hostname Lines until we hit the end of config-lines or the
+;;next Host line.  Return '(remaining-config-lines list-of-hostnames)
+(defun magit-gh-pulls-collect-hostnames (config-lines)
+  (let ((cur-line (car config-lines))
+        (rest config-lines)
+        (result '()))
+    (while (and cur-line (not (string= (cadr cur-line) "Host")))
+      (setq result (cons (cadr (cdr cur-line)) result))
+      (setq rest (cdr rest))
+      (setq cur-line (car rest)))
+    (list rest result)))
+
+                     
+(defun magit-gh-pulls-get-host-hostnames (config-lines)
+  (let (result-alist
+        (curline (car config-lines))
+        (rest-lines (cdr config-lines)))
+    (while rest-lines
+      (if (string= (cadr curline) "Host")
+          (let ((hosts (s-split "\\s*" (cadr (cdr curline)))) ;;List of the host aliases
+                (rest-result (magit-gh-pulls-collect-hostnames rest-lines)))
+            (dolist (host hosts)
+              ;;Host must be lowercase because the url parser lowercases the string
+              (setq result-alist (cons (cons (downcase host) (cadr rest-result)) result-alist)))
+            (setq curline (caar rest-result))
+            (setq rest-lines (cdar rest-result)))
+        (progn
+          (setq curline (car rest-lines))
+          (setq rest-lines (cdr rest-lines)))))
+    result-alist))                      
+        
+(defun -magit-gh-pulls-filter-and-split-host-lines (lines)
+  (delq nil
+        (mapcar (lambda (line)
+                  (s-match "^[ \t]*\\(Host\\|HostName\\|Hostname\\)[ \t]+\\(.+\\)$" line))
+                lines)))
+                       
+                  
+;; Port of github/hub's SSHConfig
+(defun magit-gh-pulls-get-ssh-config-hosts ()
+  (let* ((file-lines (mapcar (lambda (path)
+                             (if (file-exists-p path)
+                                 (with-temp-buffer
+                                   (insert-file-contents path)
+                                   (split-string (buffer-string) "\n" t))
+                               '()))
+                           (list
+                            (concat (file-name-as-directory (getenv "HOME")) ".ssh/config")
+                            "/etc/ssh_config"
+                            "/etc/ssh/ssh_config")))
+         (all-lines (apply #'append file-lines))
+         (matched-lines (-magit-gh-pulls-filter-and-split-host-lines all-lines)))
+    (magit-gh-pulls-get-host-hostnames matched-lines)))
+    
+              
+;; Port of github/hub's ParseURL
+(defun magit-gh-pulls-parse-url (url ssh-config-hosts)
+  (let* ((fixed-url (if (and (not (s-matches? "^[a-zA-Z_-]+://" url))
+                            (s-matches? ":" url)
+                            (not (s-matches? "\\\\\\\\" url))) ;;Two literal backlashes
+                       (concat "ssh://" (s-replace ":" "/" url))
+                      url))
+         (parsed-url (url-generic-parse-url fixed-url))
+         (ssh-host (when (string= (url-type parsed-url) "ssh")
+                     (assoc (url-host parsed-url) ssh-config-hosts))))
+    (when ssh-host
+      (setf (url-host parsed-url) (cadr ssh-host)))
+    (when (and 
+           (string= (url-host parsed-url) "github.com")
+           (s-matches? "\\(git\\|ssh\\|https?\\)" (url-type parsed-url)))
+      (let ((creds (s-match "/\\(.+\\)/\\([^./]*\\)\\(.git\\)?$" (url-filename parsed-url))))
+        (when creds
+          (cons (cadr creds) (cadr (cdr creds))))))))
+          
 
 (defun magit-gh-pulls-guess-repo-from-origin ()
-  (let ((creds nil))
+  (let ((creds nil)
+        (ssh-config-hosts (magit-gh-pulls-get-ssh-config-hosts)))
     (dolist (remote (magit-git-lines "remote") creds)
       (let ((parsed (magit-gh-pulls-parse-url
-                     (magit-get "remote" remote "url"))))
+                     (magit-get "remote" remote "url")
+                     ssh-config-hosts)))
         (when parsed
           (setq creds parsed))))))
 
@@ -256,18 +343,32 @@
                                (car k))
                           (pcache-invalidate cache k))))))
 
+(defun magit-gh-pulls-get-remote-default (&optional remote-name-override)
+  (let ((remote-name (or remote-name-override "origin"))
+        (remote-branches (magit-git-lines "branch" "-r"))
+         remote-head)
+    (while (and remote-branches (not remote-head))
+      (let ((m (s-match (format "^\\s-*%s/HEAD -> %s/\\(\\w*\\)" remote-name remote-name) (car remote-branches))))
+        (if m
+            (setq remote-head (cadr m))
+          (setq remote-branches (cdr remote-branches)))))
+    remote-head))
+    
+          
 
 (defun magit-gh-pulls-build-req (user proj)
-  (let ((current (or (cdr (magit-get-remote-branch))
-                     (magit-get-current-branch))))
+  (let* ((current (replace-regexp-in-string "origin/" ""
+                                           (or (magit-get-remote/branch)
+                                               (magit-get-current-branch))))
+         (current-default (magit-gh-pulls-get-remote-default)))
     (let* ((base
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
-                           :ref (completing-read "Base (master):" '() nil nil nil nil "master")))
+                           :ref (magit-read-rev "Base" current-default))) 
            (head
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
-                           :ref (completing-read (format "Head (%s):" current) '() nil nil nil nil current)))
+                           :ref (magit-read-rev "Head" current)))
            (title (read-string "Title: "))
            (body (read-string "Description: "))
            (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
@@ -283,7 +384,13 @@
             (proj (cdr repo))
             (req (magit-gh-pulls-build-req user proj))
             (a (gh-pulls-new api user proj req)))
-        (kill-new (oref (oref a :data) :html-url))))))
+        (if (not (= (oref a :http-status) 201))
+            (message "Error creating pull-request: %s.  Have you pushed the branch to github?" (cdr (assoc "Status" (oref a :headers))))
+          (let ((url (oref (oref a :data) :html-url)))
+            (message (concat "Created pull-request and copied URL to kill ring: " url))
+            (when magit-gh-pulls-open-new-pr-in-browser
+              (browse-url url))
+            (kill-new url)))))))
 
 (defun magit-gh-pulls-reload ()
   (interactive)
@@ -308,6 +415,11 @@
 (easy-menu-add-item 'magit-mode-menu
                     '("Extensions")
                     magit-gh-pulls-extension-menu)
+
+
+(magit-define-section-jumper pulls "Pull Requests")
+
+(define-key magit-section-jump-map (kbd "q") 'magit-jump-to-pulls)
 
 (defvar magit-gh-pulls-mode-map
   (let ((map (make-sparse-keymap)))
