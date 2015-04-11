@@ -77,13 +77,7 @@
         (cons (car split) (cadr split))))))
 
 (defun magit-gh-pulls-parse-url (url)
-  (let ((creds (cond
-                ((s-matches? "github.com:" url)
-                 (s-match "github.com:\\([^/]+\\)/\\([^/]+\\)/?$" url))
-                ((s-matches? "^https?://github.com" url)
-                 (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)/?$" url))
-                ((s-matches? "git://github.com/" url)
-                 (s-match "git://github.com/\\(.+\\)/\\(.+\\)/?$" url)))))
+  (let ((creds (s-match "github.com[:/]\\([^/]+\\)/\\([^/]+\\)/?$" url)))
     (when creds
       (cons (cadr creds) (s-chop-suffix ".git" (caddr creds))))))
 
@@ -347,6 +341,32 @@
 (defun turn-on-magit-gh-pulls ()
   "Unconditionally turn on `magit-pulls-mode'."
   (magit-gh-pulls-mode 1))
+
+(ert-deftest test-magit-gh-pulls-parse-url-git-at ()
+  (should (equal '("sigma" . "magit-gh-pulls")
+                 (magit-gh-pulls-parse-url "git@github.com:sigma/magit-gh-pulls.git"))))
+
+(ert-deftest test-magit-gh-pulls-parse-url-https ()
+  (should (equal '("sigma" . "magit-gh-pulls")
+                 (magit-gh-pulls-parse-url "https://github.com/sigma/magit-gh-pulls.git"))))
+
+(ert-deftest test-magit-gh-pulls-parse-url-https ()
+  (should (equal '("sigma" . "magit-gh-pulls")
+                 (magit-gh-pulls-parse-url "https://github.com/sigma/magit-gh-pulls/"))))
+
+(ert-deftest test-magit-gh-pulls-parse-url-http ()
+  (should (equal '("sigma" . "magit-gh-pulls")
+                 (magit-gh-pulls-parse-url "http://github.com/sigma/magit-gh-pulls.git"))))
+
+(ert-deftest test-magit-gh-pulls-parse-url-git ()
+  (should (equal '("sigma" . "magit-gh-pulls")
+                 (magit-gh-pulls-parse-url "git://github.com/sigma/magit-gh-pulls.git"))))
+
+(ert-deftest test-magic-gh-pulls-parse-url-invalid ()
+  (should (eq nil (magit-gh-pulls-parse-url "http://google.com"))))
+
+(ert-deftest test-magic-gh-pulls-parse-url-garbage ()
+  (should (eq nil (magit-gh-pulls-parse-url "08h3fiuandiu"))))
 
 (provide 'magit-gh-pulls)
 ;; Local Variables:
