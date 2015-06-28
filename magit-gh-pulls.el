@@ -1,12 +1,12 @@
 ;;; magit-gh-pulls.el --- GitHub pull requests extension for Magit
 
-;; Copyright (C) 2011-2014 Yann Hodique, Alexander Yakushev
+;; Copyright (C) 2011-2015  Yann Hodique, Alexander Yakushev
 
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
-;; Keywords: tools
-;; Version: 0.4
+;; Keywords: git tools
+;; Version: 0.5
 ;; URL: https://github.com/sigma/magit-gh-pulls
-;; Package-Requires: ((emacs "24") (gh "0.4.3") (magit "1.1.0") (pcache "0.2.3") (s "1.6.1"))
+;; Package-Requires: ((emacs "24") (gh "0.4.3") (magit "2.1.0") (pcache "0.2.3") (s "1.6.1"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@
 
 ;; Add these lines to your init.el:
 
-;; (require 'magit-gh-pulls.el)
+;; (require 'magit-gh-pulls)
 ;; (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
 
 ;; There are currently 4 bindings for pull requests:
@@ -110,7 +110,8 @@
                            (oref (gh-pulls-list api user proj) :data)))
                    (branch (magit-get-current-branch)))
               (when (> (length stubs) 0)
-                (magit-with-section (section stubs 'pulls "Pull Requests:" t)
+                (magit-insert-section (pulls)
+                  (magit-insert-heading "Pull Requests:")
                   (dolist (stub stubs)
                     (let* ((id (oref stub :number))
                            (req (oref (gh-pulls-get api user proj id) :data))
@@ -129,28 +130,38 @@
                                                (format "HEAD...%s" head-sha)
                                                "--not"
                                                (format "%s" base-sha)))))
-                           (header (concat (format "\t[%s@%s] " id
-                                                   (if (string= base-ref branch)
-                                                       (propertize base-ref
-                                                                   'face 'magit-branch)
-                                                     base-ref))
-                                           (propertize (format "%s\n" (oref req :title))
-                                                       'face (cond (applied 'widget-inactive)
-                                                                   (have-commits 'default)
-                                                                   (invalid 'error)
-                                                                   (t 'italic)))))
+                           (heading
+                            (format "[%s@%s] %s\n"
+                                    (propertize (number-to-string id)
+                                                'face 'magit-tag)
+                                    (if (string= base-ref branch)
+                                        (propertize base-ref
+                                                    'face 'magit-branch-local)
+                                      base-ref)
+                                    (propertize
+                                     (oref req :title) 'face
+                                     (cond (applied 'magit-cherry-equivalent)
+                                           (have-commits nil)
+                                           (invalid 'error)
+                                           (t 'italic)))))
                            (info (list user proj id)))
-                      (cond (have-commits
-                             (magit-with-section (section pull info nil nil magit-gh-pulls-collapse-commits)
-                               (insert header)
-                               (when (and have-commits (not applied))
-                                 (magit-git-insert-section (request)
-                                     (apply-partially 'magit-wash-log 'unique)
-                                   "log" "--format=format:%h %s" (format "%s..%s" base-sha head-sha)))))
-                            (invalid (magit-with-section (section invalid-pull info)
-                                       (insert header)))
-                            (t (magit-with-section (section unfetched-pull info)
-                                 (insert header))))))
+                      (cond
+                       (have-commits
+                        (magit-insert-section
+                          (pull info (not magit-gh-pulls-collapse-commits))
+                          (magit-insert heading)
+                          (magit-insert-heading)
+                          (when (and have-commits (not applied))
+                            (magit-git-wash
+                                (apply-partially 'magit-log-wash-log 'cherry)
+                              "cherry" "-v" (magit-abbrev-arg)
+                              base-sha head-sha))))
+                       (invalid
+                        (magit-insert-section (invalid-pull info)
+                          (magit-insert heading)))
+                       (t
+                        (magit-insert-section (unfetched-pull info)
+                          (magit-insert heading))))))
                   (when (> (length stubs) 0)
                     (insert "\n"))))))))
     (error nil)))
@@ -160,18 +171,26 @@
         (topic (oref (oref req :head) :ref)))
     (format "%s/%s" user topic)))
 
+(defun magit-gh-section-req-data (&optional section)
+  (oref (apply #'gh-pulls-get
+               (magit-gh-pulls-get-api)
+               (magit-section-value (or section (magit-current-section))))
+        :data))
+
 (defun magit-gh-pulls-create-branch ()
   (interactive)
-  (magit-section-action pr-create-branch (info)
+  (magit-section-case
     (pull
-     (let* ((api (magit-gh-pulls-get-api))
-            (req (oref (apply 'gh-pulls-get api info) :data))
+     (let* ((req (magit-gh-section-req-data))
             (branch (read-from-minibuffer
                      "Branch name: " (magit-gh-pulls-guess-topic-name req)))
-            (base (magit-read-rev "Branch base: "
-                                  (oref (oref req :base) :ref))))
-       (magit-create-branch branch base)
-       (magit-merge (oref (oref req :head) :sha))))
+            (base (magit-read-branch-or-commit
+                   "Branch base: "
+                   (oref (oref req :base) :ref)))
+            (inhibit-magit-refresh t))
+       (magit-branch branch base)
+       (magit-merge (oref (oref req :head) :sha)))
+     (magit-refresh))
     (unfetched-pull
      (error "Please fetch pull request commits first"))
     (invalid-pull
@@ -179,17 +198,18 @@
 
 (defun magit-gh-pulls-merge-pull-request ()
   (interactive)
-  (magit-section-action pr-merge (info)
+  (magit-section-case
     (pull
-     (let* ((api (magit-gh-pulls-get-api))
-            (req (oref (apply 'gh-pulls-get api info) :data))
+     (let* ((req (magit-gh-section-req-data))
             (branch (magit-gh-pulls-guess-topic-name req))
-            (base (oref (oref req :base) :ref)))
-       (magit-create-branch branch base)
+            (base (oref (oref req :base) :ref))
+            (inhibit-magit-refresh t))
+       (magit-branch branch base)
        (magit-merge (oref (oref req :head) :sha))
        (magit-checkout base)
        (magit-merge branch)
-       (magit-delete-branch branch)))
+       (magit-call-git "branch" "-D" branch))
+     (magit-refresh))
     (unfetched-pull
      (error "Please fetch pull request commits first"))
     (invalid-pull
@@ -197,10 +217,9 @@
 
 (defun magit-gh-pulls-fetch-commits ()
   (interactive)
-  (magit-section-action pr-fetch-commits (info)
+  (magit-section-case
     (unfetched-pull
-     (let* ((api (magit-gh-pulls-get-api))
-            (req (oref (apply 'gh-pulls-get api info) :data))
+     (let* ((req (magit-gh-section-req-data))
             (head (oref req :head)))
        (magit-run-git "fetch" (oref (oref head :repo) :git-url)
                       (oref head :ref))))
@@ -215,11 +234,10 @@
 
 (defun magit-gh-pulls-open-in-browser ()
   (interactive)
-  (magit-section-action pr-browse (info)
-    (pull
-     (browse-url (magit-gh-pulls-url-for-pull info)))
-    (unfetched-pull
-     (browse-url (magit-gh-pulls-url-for-pull info)))))
+  (let ((info (magit-section-value (magit-current-section))))
+    (magit-section-case
+      (pull           (browse-url (magit-gh-pulls-url-for-pull info)))
+      (unfetched-pull (browse-url (magit-gh-pulls-url-for-pull info))))))
 
 (defun magit-gh-pulls-purge-cache ()
   (let* ((api (magit-gh-pulls-get-api))
@@ -233,9 +251,8 @@
 
 
 (defun magit-gh-pulls-build-req (user proj)
-  (let ((current (replace-regexp-in-string "origin/" ""
-                                           (or (magit-get-remote/branch)
-                                               (magit-get-current-branch)))))
+  (let ((current (or (cdr (magit-get-remote-branch))
+                     (magit-get-current-branch))))
     (let* ((base
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
