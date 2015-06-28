@@ -56,6 +56,7 @@
 (require 'magit)
 (require 'gh-pulls)
 (require 'pcache)
+(require 'gh)
 (require 's)
 
 (defvar magit-gh-pulls-maybe-filter-pulls 'identity
@@ -98,6 +99,14 @@
   (or (magit-gh-pulls-get-repo-from-config)
       (magit-gh-pulls-guess-repo-from-origin)))
 
+(defun magit-gh-pulls-requests-cached-p (api user proj)
+  (let ((cache-repo (format "/repos/%s/%s/pulls" user proj))
+        (cached? nil))
+    (pcache-map (oref api :cache)
+                (lambda (key _) (when (equal (car key) cache-repo)
+                             (setq cached? t))))
+    cached?))
+
 (defun magit-gh-pulls-insert-gh-pulls ()
   (condition-case print-section
       (progn
@@ -106,10 +115,12 @@
             (let* ((api (magit-gh-pulls-get-api))
                    (user (car repo))
                    (proj (cdr repo))
-                   (stubs (funcall magit-gh-pulls-maybe-filter-pulls
-                           (oref (gh-pulls-list api user proj) :data)))
+                   (cached? (magit-gh-pulls-requests-cached-p api user proj))
+                   (stubs (when cached?
+                            (funcall magit-gh-pulls-maybe-filter-pulls
+                                     (oref (gh-pulls-list api user proj) :data))))
                    (branch (magit-get-current-branch)))
-              (when (> (length stubs) 0)
+              (when (or (> (length stubs) 0) (not cached?))
                 (magit-insert-section (pulls)
                   (magit-insert-heading "Pull Requests:")
                   (dolist (stub stubs)
@@ -162,6 +173,8 @@
                        (t
                         (magit-insert-section (unfetched-pull info)
                           (magit-insert heading))))))
+                  (when (not cached?)
+                    (insert "Press `# g g` to update the pull request list.\n\n"))
                   (when (> (length stubs) 0)
                     (insert "\n"))))))))
     (error nil)))
@@ -284,6 +297,7 @@
     (if (not (and creds (car creds) (cdr creds)))
         (message "Remote repository is not configured or incorrect.")
       (magit-gh-pulls-purge-cache)
+      (gh-pulls-list (magit-gh-pulls-get-api) (car creds) (cdr creds))
       (magit-refresh))))
 
 (easy-menu-define magit-gh-pulls-extension-menu
