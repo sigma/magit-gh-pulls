@@ -79,13 +79,13 @@
 (defun magit-gh-pulls-parse-url (url)
   (let ((creds (cond
                 ((s-matches? "github.com:" url)
-                 (s-match "github.com:\\(.+\\)/\\(.+\\)\\(.git\\)?$" url))
+                 (s-match "github.com:\\([^/]+\\)/\\([^/]+\\)/?$" url))
                 ((s-matches? "^https?://github.com" url)
-                 (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)\\(.git\\)?/?$" url))
+                 (s-match "^https://github.com/\\(.+\\)/\\([^/]+\\)/?$" url))
                 ((s-matches? "git://github.com/" url)
-                 (s-match "git://github.com/\\(.+\\)/\\(.+\\)\\(.git\\)?$" url)))))
+                 (s-match "git://github.com/\\(.+\\)/\\(.+\\)/?$" url)))))
     (when creds
-      (cons (cadr creds) (caddr creds)))))
+      (cons (cadr creds) (s-chop-suffix ".git" (caddr creds))))))
 
 (defun magit-gh-pulls-guess-repo-from-origin ()
   (let ((creds nil))
