@@ -59,9 +59,9 @@
 (require 'eieio)
 
 (require 'magit)
+(require 'gh)
 (require 'gh-pulls)
 (require 'pcache)
-(require 'gh)
 (require 's)
 
 (defgroup magit-gh-pulls nil
