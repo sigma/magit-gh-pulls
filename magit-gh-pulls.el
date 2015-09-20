@@ -156,7 +156,7 @@
          (parsed-url (url-generic-parse-url fixed-url))
          (ssh-host (when (string= (url-type parsed-url) "ssh")
                      (assoc (url-host parsed-url) ssh-config-hosts))))
-    (when ssh-host
+    (when (and ssh-host (cadr ssh-host))
       (setf (url-host parsed-url) (cadr ssh-host)))
     (when (and
            (string= (url-host parsed-url) "github.com")
