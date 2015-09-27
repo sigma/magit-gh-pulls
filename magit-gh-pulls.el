@@ -282,7 +282,7 @@
                    "Branch base: "
                    (oref (oref req :base) :ref)))
             (inhibit-magit-refresh t))
-       (magit-branch branch base)
+       (magit-branch-and-checkout branch base)
        (magit-merge (oref (oref req :head) :sha)))
      (magit-refresh))
     (unfetched-pull
@@ -298,7 +298,7 @@
             (branch (magit-gh-pulls-guess-topic-name req))
             (base (oref (oref req :base) :ref))
             (inhibit-magit-refresh t))
-       (magit-branch branch base)
+       (magit-branch-and-checkout branch base)
        (magit-merge (oref (oref req :head) :sha))
        (magit-checkout base)
        (magit-merge branch)
