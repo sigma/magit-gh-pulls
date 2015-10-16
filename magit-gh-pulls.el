@@ -85,6 +85,8 @@
   (gh-pulls-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
 (defun magit-gh-pulls-get-repo-from-config ()
+  "Return (user . project) pair read from magit.gh-pulls-repo
+config option."
   (let* ((cfg (magit-get "magit" "gh-pulls-repo")))
     (when cfg
       (let* ((split (split-string cfg "/")))
@@ -167,6 +169,8 @@
 
 
 (defun magit-gh-pulls-guess-repo-from-origin ()
+  "Return (user . project) pair inferred from remotes in
+.git/config."
   (let ((creds nil)
         (ssh-config-hosts (magit-gh-pulls-get-ssh-config-hosts)))
     (dolist (remote (magit-git-lines "remote") creds)
@@ -177,10 +181,13 @@
           (setq creds parsed))))))
 
 (defun magit-gh-pulls-guess-repo ()
+  "Return (user . project) pair obtained either from explicit
+option, or inferred from remotes."
   (or (magit-gh-pulls-get-repo-from-config)
       (magit-gh-pulls-guess-repo-from-origin)))
 
 (defun magit-gh-pulls-requests-cached-p (api user proj)
+  "Returns T if the API request to the given USER and PROJ is cached."
   (let ((cache-repo (format "/repos/%s/%s/pulls" user proj))
         (cached? nil))
     (pcache-map (oref api :cache)
@@ -216,12 +223,8 @@
                             (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
                                  (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
                            (applied (and have-commits
-                                         (not (magit-git-string
-                                               "rev-list"
-                                               "--cherry-pick" "--right-only"
-                                               (format "HEAD...%s" head-sha)
-                                               "--not"
-                                               (format "%s" base-sha)))))
+                                         (magit-git-string "branch" branch
+                                                           (format "--contains=%s" head-sha))))
                            (heading
                             (format "[%s@%s] %s\n"
                                     (propertize (number-to-string id)
