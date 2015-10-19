@@ -23,8 +23,13 @@
 
       In =magit-status= window press =# g g= to refresh the list of pull requests.
       magit-gh-pulls automatically infers credentials from the URL of the
-      repository. If there are some PRs available, a new section will appear
-      called *Pull Requests*. Each item in this section has the following form:
+      repository. You can also explicitly specify which Github project to fetch
+      PRs from by executing this in your shell:
+
+      : git config magit.gh-pulls-repo <user>/<repo> # your github repository
+
+      If there are some PRs available, a new section will appear called *Pull
+      Requests*. Each item in this section has the following form:
 
       : [pull-request-number@branch-name] Pull request name
 

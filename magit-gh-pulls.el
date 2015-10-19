@@ -40,12 +40,12 @@
 ;; (add-hook 'magit-mode-hook 'turn-on-magit-gh-pulls)
 
 ;; These are the bindings for pull requests, defined in magit-gh-pulls-mode-map:
-;; # g g --- refreshes the list of pull requests
-;; # g f --- fetches the commits associated with the pull request at point
-;; # g b --- helps you creating a topic branch from a review request
-;; # g m --- merges the PR on top of the current branch
-;; # g c --- creates a PR from the current branch
-;; # g o --- opens a pull request on GitHub in your default browser
+;; # g --- refreshes the list of pull requests
+;; # f --- fetches the commits associated with the pull request at point
+;; # b --- helps you creating a topic branch from a review request
+;; # m --- merges the PR on top of the current branch
+;; # c --- creates a PR from the current branch
+;; # o --- opens a pull request on GitHub in your default browser
 
 ;; Then, you can do whatever you want with the commit objects associated with
 ;; the pull request (merge, cherry-pick, diff, ...)
@@ -258,7 +258,7 @@ option, or inferred from remotes."
                         (magit-insert-section (unfetched-pull info)
                           (magit-insert heading))))))
                   (when (not cached?)
-                    (insert "Press `# g g` to update the pull request list.\n\n"))
+                    (insert "Press `# g` to update the pull request list.\n\n"))
                   (when (> (length stubs) 0)
                     (insert "\n"))))))))
     (error nil)))
@@ -424,12 +424,7 @@ option, or inferred from remotes."
 
 (defvar magit-gh-pulls-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "# g b") 'magit-gh-pulls-create-branch)
-    (define-key map (kbd "# g f") 'magit-gh-pulls-fetch-commits)
-    (define-key map (kbd "# g g") 'magit-gh-pulls-reload)
-    (define-key map (kbd "# g m") 'magit-gh-pulls-merge-pull-request)
-    (define-key map (kbd "# g c") 'magit-gh-pulls-create-pull-request)
-    (define-key map (kbd "# g o") 'magit-gh-pulls-open-in-browser)
+    (define-key map (kbd "#") 'magit-gh-pulls-popup)
     map))
 
 (defvar magit-gh-pulls-mode-lighter " Pulls")
@@ -454,6 +449,18 @@ option, or inferred from remotes."
 (defun turn-on-magit-gh-pulls ()
   "Unconditionally turn on `magit-pulls-mode'."
   (magit-gh-pulls-mode 1))
+
+(magit-define-popup magit-gh-pulls-popup
+  "Show popup buffer featuring Github Pull Requests commands."
+  'magit-commands
+  :switches '((?c "Produce merge commit" "--merge-commit"))
+  :actions  '((?g "Reload" magit-gh-pulls-reload)
+              (?f "Fetch" magit-gh-pulls-fetch-commits)
+              (?b "Make branch" magit-gh-pulls-create-branch)
+              (?c "Create new PR" magit-gh-pulls-create-pull-request)
+              (?o "Open in browser" magit-gh-pulls-open-in-browser)
+              (?m "Merge"    magit-gh-pulls-merge-pull-request))
+  :default-action 'magit-gh-pulls-reload)
 
 (provide 'magit-gh-pulls)
 ;; Local Variables:
