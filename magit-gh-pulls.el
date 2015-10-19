@@ -68,8 +68,8 @@
   "Github.com pull-requests for Magit."
   :group 'magit-extensions)
 
-(defcustom magit-gh-pulls-open-new-pr-in-browser t
-  "Open newly-created pull-requests automatically in the browser"
+(defcustom magit-gh-pulls-open-new-pr-in-browser nil
+  "DEPRECATED: use magit switch instead."
   :group 'magit-gh-pulls
   :type 'boolean)
 
@@ -358,8 +358,6 @@ option, or inferred from remotes."
           (setq remote-branches (cdr remote-branches)))))
     remote-head))
 
-
-
 (defun magit-gh-pulls-build-req (user proj)
   (let* ((current (or (cdr (magit-get-remote-branch))
                      (magit-get-current-branch)))
@@ -398,7 +396,7 @@ option, or inferred from remotes."
             (message "Error creating pull-request: %s.  Have you pushed the branch to github?" (cdr (assoc "Status" (oref a :headers))))
           (let ((url (oref (oref a :data) :html-url)))
             (message (concat "Created pull-request and copied URL to kill ring: " url))
-            (when magit-gh-pulls-open-new-pr-in-browser
+            (when (member "--open-new-in-browser" (magit-gh-pulls-arguments))
               (browse-url url))
             (kill-new url)))))))
 
@@ -461,7 +459,8 @@ option, or inferred from remotes."
 (magit-define-popup magit-gh-pulls-popup
   "Show popup buffer featuring Github Pull Requests commands."
   'magit-commands
-  :switches '((?c "Produce merge commit" "--no-ff"))
+  :switches '((?c "Produce merge commit" "--no-ff")
+              (?w "Open new PR in browser" "--open-new-in-browser"))
   :actions  '((?g "Reload" magit-gh-pulls-reload)
               (?f "Fetch" magit-gh-pulls-fetch-commits)
               (?b "Make branch" magit-gh-pulls-create-branch)
