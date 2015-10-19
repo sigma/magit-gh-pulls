@@ -304,7 +304,8 @@ option, or inferred from remotes."
        (magit-branch-and-checkout branch base)
        (magit-merge (oref (oref req :head) :sha))
        (magit-checkout base)
-       (magit-merge branch)
+       (magit-merge branch (when (member "--no-ff" (magit-gh-pulls-arguments))
+                             '("--no-ff")))
        (magit-call-git "branch" "-D" branch))
      (magit-refresh))
     (unfetched-pull
