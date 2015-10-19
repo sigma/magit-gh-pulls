@@ -363,19 +363,26 @@ option, or inferred from remotes."
 (defun magit-gh-pulls-build-req (user proj)
   (let* ((current (or (cdr (magit-get-remote-branch))
                      (magit-get-current-branch)))
-         (current-default (magit-gh-pulls-get-remote-default)))
+         (current-default (magit-gh-pulls-get-remote-default))
+         (base-branch (magit-read-other-branch-or-commit "Base" nil current-default))
+         (head-branch (magit-read-other-branch-or-commit "Head" nil current)))
     (let* ((base
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
-                           :ref (magit-read-other-branch-or-commit "Base" nil current-default)))
+                           :ref base-branch))
            (head
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
-                           :ref (magit-read-other-branch-or-commit "Head" nil current)))
-           (title (read-string "Title: "))
-           (body (read-string "Description: "))
-           (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
-      req)))
+                           :ref head-branch))
+           (head-remote (concat (magit-get-remote base-branch) "/" head-branch))
+           (pushed-p (null (magit-git-lines "diff" (concat head-remote ".." head-branch))))
+          (title (read-string "Title: "))
+          (body (read-string "Description: "))
+          (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
+      (when (and (not pushed-p)
+                 (yes-or-no-p "PR branch doesn't appear to be pushed. Push it?"))
+        (magit-push current (magit-get-remote base-branch)))
+     req)))
 
 (defun magit-gh-pulls-create-pull-request ()
   (interactive)
@@ -454,7 +461,7 @@ option, or inferred from remotes."
 (magit-define-popup magit-gh-pulls-popup
   "Show popup buffer featuring Github Pull Requests commands."
   'magit-commands
-  :switches '((?c "Produce merge commit" "--merge-commit"))
+  :switches '((?c "Produce merge commit" "--no-ff"))
   :actions  '((?g "Reload" magit-gh-pulls-reload)
               (?f "Fetch" magit-gh-pulls-fetch-commits)
               (?b "Make branch" magit-gh-pulls-create-branch)
