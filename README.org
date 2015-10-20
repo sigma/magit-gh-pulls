@@ -5,7 +5,7 @@
 
 ** Installation
 
-   magit-gh-pulls is available on [[http://melpa.milkbox.net/][MELPA]]. To install it do the following:
+   magit-gh-pulls is available on [[https://melpa.org/][MELPA]]. To install it do the following:
 
    : M-x package-install RET magit-gh-pulls RET
 
