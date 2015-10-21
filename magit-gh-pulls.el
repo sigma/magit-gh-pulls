@@ -274,6 +274,21 @@ option, or inferred from remotes."
                (magit-section-value (or section (magit-current-section))))
         :data))
 
+(defun magit-gh-pulls-diff-pull-request ()
+  (interactive)
+  (magit-section-case
+    (pull
+     (let* ((req (magit-gh-section-req-data))
+            (inhibit-magit-refresh t))
+       (magit-diff (concat (oref (oref req :base) :sha) ".."
+                           (oref (oref req :head) :sha))))
+     (magit-refresh))
+    (unfetched-pull
+     (error "Please fetch pull request commits first"))
+    (invalid-pull
+     (error "This pull request refers to invalid reference"))))
+
+
 (defun magit-gh-pulls-create-branch ()
   (interactive)
   (magit-section-case
@@ -464,10 +479,11 @@ option, or inferred from remotes."
               (?w "Open new PR in browser" "--open-new-in-browser"))
   :actions  '((?g "Reload" magit-gh-pulls-reload)
               (?f "Fetch" magit-gh-pulls-fetch-commits)
+              (?d "Diff" magit-gh-pulls-diff-pull-request)
               (?b "Make branch" magit-gh-pulls-create-branch)
+              (?m "Merge"    magit-gh-pulls-merge-pull-request)
               (?c "Create new PR" magit-gh-pulls-create-pull-request)
-              (?o "Open in browser" magit-gh-pulls-open-in-browser)
-              (?m "Merge"    magit-gh-pulls-merge-pull-request))
+              (?o "Open in browser" magit-gh-pulls-open-in-browser))
   :default-action 'magit-gh-pulls-reload)
 
 (provide 'magit-gh-pulls)
