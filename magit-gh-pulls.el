@@ -196,7 +196,7 @@ option, or inferred from remotes."
     cached?))
 
 (defun magit-gh-pulls-insert-gh-pulls ()
-  (condition-case print-section
+  (condition-case-unless-debug print-section
       (progn
         (let* ((repo (magit-gh-pulls-guess-repo)))
           (when repo
