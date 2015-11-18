@@ -244,7 +244,7 @@ option, or inferred from remotes."
                        (have-commits
                         (magit-insert-section
                           (pull info (not magit-gh-pulls-collapse-commits))
-                          (magit-insert heading)
+                          (insert heading)
                           (magit-insert-heading)
                           (when (and have-commits (not applied))
                             (magit-git-wash
@@ -253,10 +253,10 @@ option, or inferred from remotes."
                               base-sha head-sha))))
                        (invalid
                         (magit-insert-section (invalid-pull info)
-                          (magit-insert heading)))
+                          (insert heading)))
                        (t
                         (magit-insert-section (unfetched-pull info)
-                          (magit-insert heading))))))
+                          (insert heading))))))
                   (when (not cached?)
                     (insert "Press `# g` to update the pull request list.\n\n"))
                   (when (> (length stubs) 0)
