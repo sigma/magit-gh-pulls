@@ -441,7 +441,7 @@ option, or inferred from remotes."
                     magit-gh-pulls-extension-menu)
 
 
-(magit-define-section-jumper pulls "Pull Requests")
+(magit-define-section-jumper magit-jump-to-pulls "Pull Requests" pulls)
 (define-key magit-status-mode-map (kbd "jq") 'magit-jump-to-pulls)
 
 (defvar magit-gh-pulls-mode-map
