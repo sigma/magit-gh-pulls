@@ -374,8 +374,7 @@ option, or inferred from remotes."
     remote-head))
 
 (defun magit-gh-pulls-build-req (user proj)
-  (let* ((current (or (cdr (magit-get-remote-branch))
-                      (magit-get-current-branch)))
+  (let* ((current (magit-get-current-branch))
          (current-default (magit-gh-pulls-get-remote-default))
          (base-branch (magit-read-other-branch-or-commit "Base" nil current-default))
          (head-branch (magit-read-other-branch-or-commit "Head" nil current)))
