@@ -393,9 +393,12 @@ option, or inferred from remotes."
             (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
                            :repo (make-instance 'gh-repos-repo :name proj)
                            :ref head-branch))
-          (title (read-string "Title: "))
-          (body (read-string "Description: "))
-          (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
+           (default-title (magit-git-string "log"
+                                            (format "%s..%s" base-branch head-branch)
+                                            "--format=%B" "--reverse"))
+           (title (read-string "Title: " default-title))
+           (body (read-string "Description: "))
+           (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
      req)))
 
 (defun magit-gh-pulls-create-pull-request ()
