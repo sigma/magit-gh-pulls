@@ -395,7 +395,7 @@ option, or inferred from remotes."
                            :ref head-branch))
            (default-title (magit-git-string "log"
                                             (format "%s..%s" base-branch head-branch)
-                                            "--format=%B" "--reverse"))
+                                            "--format=%s" "--reverse"))
            (title (read-string "Title: " default-title))
            (body (read-string "Description: "))
            (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
