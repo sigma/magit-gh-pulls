@@ -78,7 +78,7 @@
   viewed in magit. It receives a list of pull requests and should
   return a list of pull requests.")
 
-(defvar magit-gh-pulls-collapse-commits nil
+(defvar magit-gh-pulls-collapse-commits t
   "Collapse commits in pull requests listing.")
 
 (defun magit-gh-pulls-get-api ()
@@ -243,7 +243,7 @@ option, or inferred from remotes."
                       (cond
                        (have-commits
                         (magit-insert-section
-                          (pull info (not magit-gh-pulls-collapse-commits))
+                          (pull info magit-gh-pulls-collapse-commits)
                           (insert heading)
                           (magit-insert-heading)
                           (when (and have-commits (not applied))
