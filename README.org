@@ -21,7 +21,7 @@
 
 ***** Existing Pull Requests
 
-      In =magit-status= window press =# g g= to refresh the list of pull requests.
+      In =magit-status= window press =# g= to refresh the list of pull requests.
       magit-gh-pulls automatically infers credentials from the URL of the
       repository. You can also explicitly specify which Github project to fetch
       PRs from by executing this in your shell:
@@ -33,43 +33,43 @@
 
       : [pull-request-number@branch-name] Pull request name
 
-      Highlighting the desired PR and pressing =# g f= will fetch the commits
-      associated with the PR. These are the real commits that you can view, apply,
-      cherry-pick etc.
+      Highlighting the desired PR and pressing =# f= will fetch the commits
+      associated with the PR. These are the real commits that you can view,
+      apply, cherry-pick etc.
 
       From this point magit-gh-pulls offers you two options:
 
-      - press =# g b= on the PR to create a topic branch for this PR. After testing
-        the PR you can merge it back into your branch using Magit.
-      - press =# g m= to merge the PR on top of the currently checked out branch.
+      - press =# b= on the PR to create a topic branch for this PR. After
+        testing the PR you can merge it back into your branch using Magit.
+      - press =# m= to merge the PR on top of the currently checked out branch.
         This is convenient if pull request can be merged by fast-forwarding and
         no testing is needed (or you can test from your branch directly). A nice
         benefit of this approach over merging from Github interface is that in
-        case of FF no merge commit is produced, so history stays nice and linear.
+        case of FF no merge commit is produced by default, so history stays nice
+        and linear. If you still want the merge commit, enable =-c= option while
+        in magit-gh-pulls menu.
 
 ***** Creating Pull Requests
 
-      In =magit-status= press =# g c= to create a new pull request.  You will be asked
-      for the base commit and the head commit for the pull-request.  They will default
-      to the default branch of your repository and current head respecively.  Enter a title
-      and description for the pull request, and magit-gh-pulls will connect to GitHub to
-      create the pull request.  By default,
-      the new pullrequest will be opened on github.com in the browser.  You may
-      turn this behavior off by customizing =magit-gh-pulls-open-new-pr-in-browser=
+      In =magit-status= press =# c= to create a new pull request. You will be
+      asked for the base commit and the head commit for the pull-request. They
+      will default to the default branch of your repository and current head
+      respectively. Enter a title and description for the pull request, and
+      magit-gh-pulls will connect to GitHub to create the pull request. If =-w=
+      option is enabled, the new pull request will be opened on github.com in
+      the browser.
 
       The base and head of the pull request must already be present on github.
-      If you haven't yet pushed your local commits, creating the pull request will fail.
-      You can push with magit's standard =P P=.
+      If you haven't yet pushed your local commits, magit-gh-pulls will suggest
+      to push them first.
 
-      
 ***** Miscellaneous
 
-      - =# g o= Will open the selected a pull request in your default browser on GitHub.
+      - =# o= Will open the selected a pull request in your default browser on GitHub.
       - =j q= will jump to the Pull Requests section in the =magit-status= window.
-        
 
 ** License
 
-   Copyright © 2011-2014 Yann Hodique, Alexander Yakushev and [[https://github.com/sigma/magit-gh-pulls/graphs/contributors][contributors]].
+   Copyright © 2011-2015 Yann Hodique, Alexander Yakushev and [[https://github.com/sigma/magit-gh-pulls/graphs/contributors][contributors]].
    Distributed under the GNU General Public License ver. 2. See the header of
    the [[https://github.com/sigma/magit-gh-pulls/blob/master/magit-gh-pulls.el][source file]].

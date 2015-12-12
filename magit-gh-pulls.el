@@ -50,9 +50,8 @@
 ;; Then, you can do whatever you want with the commit objects associated with
 ;; the pull request (merge, cherry-pick, diff, ...)
 
-;; When you create a new pull request, it will automatically open it on GitHub
-;; in your default browser.  You can alter this behavior by customizing
-;; magit-gh-pulls-open-new-pr-in-browser
+;; When you create a new pull request, you can enable -w option to automatically
+;; open it on GitHub in your default browser.
 
 ;;; Code:
 
