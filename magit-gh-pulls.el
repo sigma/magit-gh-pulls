@@ -212,12 +212,11 @@ option, or inferred from remotes."
                   (magit-insert-heading "Pull Requests:")
                   (dolist (stub stubs)
                     (let* ((id (oref stub :number))
-                           (req (oref (gh-pulls-get api user proj id) :data))
-                           (base-sha (oref (oref req :base) :sha))
-                           (base-ref (oref (oref req :base) :ref))
-                           (head-sha (oref (oref req :head) :sha))
+                           (base-sha (oref (oref stub :base) :sha))
+                           (base-ref (oref (oref stub :base) :ref))
+                           (head-sha (oref (oref stub :head) :sha))
                            ;; branch has been deleted in the meantime...
-                           (invalid (equal (oref (oref req :head) :ref) head-sha))
+                           (invalid (equal (oref (oref stub :head) :ref) head-sha))
                            (have-commits
                             (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
                                  (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
@@ -233,7 +232,7 @@ option, or inferred from remotes."
                                                     'face 'magit-branch-local)
                                       base-ref)
                                     (propertize
-                                     (oref req :title) 'face
+                                     (oref stub :title) 'face
                                      (cond (applied 'magit-cherry-equivalent)
                                            (have-commits nil)
                                            (invalid 'error)
