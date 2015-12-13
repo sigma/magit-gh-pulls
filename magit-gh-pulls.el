@@ -80,6 +80,14 @@
 (defvar magit-gh-pulls-collapse-commits t
   "Collapse commits in pull requests listing.")
 
+(defvar magit-gh-pulls-pull-detail-limit 10
+  "Pull in additional information for each pull request in the
+   status buffer only if the total number of open PRs is <=
+   this number. Additional information includes individual
+   commits in each PR and highlighting based on the merge
+   status of the PR. Increasing this number may adversely
+   affect performance on repos with many PRs.")
+
 (defun magit-gh-pulls-get-api ()
   (gh-pulls-api "api" :sync t :num-retries 1 :cache (gh-cache "cache")))
 
@@ -206,6 +214,7 @@ option, or inferred from remotes."
                    (stubs (when cached?
                             (funcall magit-gh-pulls-maybe-filter-pulls
                                      (oref (gh-pulls-list api user proj) :data))))
+                   (num-total-stubs (length stubs))
                    (branch (magit-get-current-branch)))
               (when (or (> (length stubs) 0) (not cached?))
                 (magit-insert-section (pulls)
@@ -219,7 +228,8 @@ option, or inferred from remotes."
                            ;; branch has been deleted in the meantime...
                            (invalid (equal (oref (oref req :head) :ref) head-sha))
                            (have-commits
-                            (and (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
+                            (and (>= magit-gh-pulls-pull-detail-limit num-total-stubs)
+                                 (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
                                  (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
                            (applied (and have-commits
                                          (magit-git-string "branch" branch
