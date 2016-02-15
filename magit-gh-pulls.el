@@ -404,8 +404,11 @@ option, or inferred from remotes."
            (default-title (magit-git-string "log"
                                             (format "%s..%s" base-branch head-branch)
                                             "--format=%s" "--reverse"))
+           (default-body (mapconcat 'identity (magit-git-lines "log"
+                                                               (format "%s..%s" base-branch head-branch)
+                                                               "-1" "--format=%b") " "))
            (title (read-string "Title: " default-title))
-           (body (read-string "Description: "))
+           (body (read-string "Description: " default-body))
            (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
      req)))
 
