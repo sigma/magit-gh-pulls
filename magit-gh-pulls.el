@@ -252,7 +252,7 @@ option, or inferred from remotes."
                                          (magit-git-string "branch" branch
                                                            (format "--contains=%s" head-sha))))
                            (heading
-                            (format "[%s@%s] %s %s\n"
+                            (format "[%s@%s] %s\n"
                                     (propertize (number-to-string id)
                                                 'face 'magit-tag)
                                     (if (string= base-ref branch)
@@ -264,10 +264,7 @@ option, or inferred from remotes."
                                      (cond (applied 'magit-cherry-equivalent)
                                            (have-commits nil)
                                            (invalid 'error)
-                                           (t 'italic)))
-                                    (propertize
-                                     "●" 'face
-                                     (if (oref req :mergeable) 'success 'error))))
+                                           (t 'italic)))))
                            (info (list user proj id)))
                       (cond
                        (have-commits
