@@ -233,11 +233,13 @@ option, or inferred from remotes."
                             (funcall magit-gh-pulls-maybe-filter-pulls
                                      (oref (gh-pulls-list api user proj) :data))))
                    (num-total-stubs (length stubs))
+                   (i 0)
                    (branch (magit-get-current-branch)))
               (when (or (> (length stubs) 0) (not cached?))
                 (magit-insert-section (pulls)
                   (magit-insert-heading "Pull Requests:")
                   (dolist (stub stubs)
+                    (incf i)
                     (let* ((id (oref stub :number))
                            (base-sha (oref (oref stub :base) :sha))
                            (base-ref (oref (oref stub :base) :ref))
@@ -245,7 +247,7 @@ option, or inferred from remotes."
                            ;; branch has been deleted in the meantime...
                            (invalid (equal (oref (oref stub :head) :ref) head-sha))
                            (have-commits
-                            (and (>= magit-gh-pulls-pull-detail-limit num-total-stubs)
+                            (and (>= magit-gh-pulls-pull-detail-limit i)
                                  (eql 0 (magit-git-exit-code "cat-file" "-e" base-sha))
                                  (eql 0 (magit-git-exit-code "cat-file" "-e" head-sha))))
                            (applied (and have-commits
