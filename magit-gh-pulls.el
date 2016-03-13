@@ -428,9 +428,10 @@ option, or inferred from remotes."
            (default-title (magit-git-string "log"
                                             (format "%s..%s" base-branch head-branch)
                                             "--format=%s" "--reverse"))
-           (default-body (mapconcat 'identity (magit-git-lines "log"
+           (default-body (mapconcat 'identity (magit-git-items "log"
                                                                (format "%s..%s" base-branch head-branch)
-                                                               "-1" "--format=%b") " ")))
+                                                               "--reverse" "--format=**%s**%n%b") "\n")))
+
       (if (member "--use-pr-editor" (magit-gh-pulls-arguments))
         (magit-gh-pulls-init-pull-editor api user proj default-title default-body base head callback)
         (let* ((title (read-string "Title: " default-title))
