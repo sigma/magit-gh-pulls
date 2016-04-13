@@ -63,6 +63,7 @@
 (require 'gh-pulls)
 (require 'pcache)
 (require 's)
+(require 'cl-lib)
 
 (defgroup magit-gh-pulls nil
   "Github.com pull-requests for Magit."
@@ -239,7 +240,7 @@ option, or inferred from remotes."
                 (magit-insert-section (pulls)
                   (magit-insert-heading "Pull Requests:")
                   (dolist (stub stubs)
-                    (incf i)
+                    (cl-incf i)
                     (let* ((id (oref stub :number))
                            (base-sha (oref (oref stub :base) :sha))
                            (base-ref (oref (oref stub :base) :ref))
