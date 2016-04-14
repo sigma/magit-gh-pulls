@@ -34,8 +34,9 @@
       : [pull-request-number@branch-name] Pull request name
 
       Highlighting the desired PR and pressing =# f= will fetch the commits
-      associated with the PR. These are the real commits that you can view,
-      apply, cherry-pick etc.
+      associated with the PR. You can then press =TAB= to reveal the list of
+      commits which comes with this PR. They are real git commits that you can
+      view, apply, cherry-pick etc.
 
       From this point magit-gh-pulls offers you two options:
 
@@ -70,6 +71,6 @@
 
 ** License
 
-   Copyright © 2011-2015 Yann Hodique, Alexander Yakushev and [[https://github.com/sigma/magit-gh-pulls/graphs/contributors][contributors]].
+   Copyright © 2011-2016 Yann Hodique, Alexander Yakushev and [[https://github.com/sigma/magit-gh-pulls/graphs/contributors][contributors]].
    Distributed under the GNU General Public License ver. 2. See the header of
    the [[https://github.com/sigma/magit-gh-pulls/blob/master/magit-gh-pulls.el][source file]].
