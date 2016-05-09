@@ -410,8 +410,8 @@ option, or inferred from remotes."
    editor which is responsible for continuing the flow."
   (let* ((current (magit-get-current-branch))
          (current-default (magit-gh-pulls-get-remote-default))
-         (base-branch (magit-read-other-branch-or-commit "Base" nil current-default))
-         (head-branch (magit-read-other-branch-or-commit "Head" nil current)))
+         (base-branch (magit-read-branch-or-commit "Base" current-default))
+         (head-branch (magit-read-branch-or-commit "Head" current)))
     (let* ((head-remote (concat (magit-get-remote base-branch) "/" head-branch))
            (pushed-p (and (magit-branch-p head-remote)
                           (null (magit-git-lines "diff" (concat head-remote ".." head-branch))))))
