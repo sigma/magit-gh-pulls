@@ -440,6 +440,12 @@ option, or inferred from remotes."
                (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
           (funcall callback api user proj req))))))
 
+(defun magit-gh-pulls-pr-template-file ()
+  "Returns the path to the PULL_REQUEST_TEMPLATE file in the
+  current repository. Returns nil if there is not a pull request
+  template file."
+  (car (directory-files (magit-toplevel) t "^PULL_REQUEST_TEMPLATE")))
+
 (defun magit-gh-pulls-init-pull-editor (api user proj default-title default-body base head callback)
   "Create a new buffer for editing this pull request and
    switch to it. The context needed to finalize the
@@ -454,7 +460,10 @@ option, or inferred from remotes."
     (other-window 1)
     (switch-to-buffer buffer)
     (funcall 'magit-gh-pulls-editor-mode)
-    (insert (or default-title "") "\n\n" default-body)
+    (if (magit-gh-pulls-pr-template-file)
+        (progn (insert (or default-title "") "\n\n")
+               (insert-file-contents (magit-gh-pulls-pr-template-file)))
+      (insert (or default-title "") "\n\n" default-body))
     (goto-char (point-min))
     (message "Opening pull request editor. C-c C-c to finish, C-c C-k to quit.")
     (setq-local magit-gh-pulls-editor-context context)
