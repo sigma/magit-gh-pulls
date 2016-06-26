@@ -443,8 +443,10 @@ option, or inferred from remotes."
 (defun magit-gh-pulls-pr-template-file ()
   "Returns the path to the PULL_REQUEST_TEMPLATE file in the
   current repository. Returns nil if there is not a pull request
-  template file."
-  (car (directory-files (magit-toplevel) t "^PULL_REQUEST_TEMPLATE")))
+  template file. A pull request template file can be placed in
+  the repository root directory, or in a .github/ directory."
+  (car (list (directory-files (magit-toplevel) t "^PULL_REQUEST_TEMPLATE")
+	     (directory-files (format "%s.github/" (magit-toplevel)) t "^PULL_REQUEST_TEMPLATE"))))
 
 (defun magit-gh-pulls-init-pull-editor (api user proj default-title default-body base head callback)
   "Create a new buffer for editing this pull request and
