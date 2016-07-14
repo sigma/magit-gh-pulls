@@ -90,6 +90,12 @@
    status of the PR. Increasing this number may adversely
    affect performance on repos with many PRs.")
 
+(defvar magit-gh-pulls-status-documentation nil
+  "Info string to be shown in magit status buffer when there are
+   no PRs to be listed.
+
+When nil, default string is constructed.")
+
 (defvar-local magit-gh-pulls-previous-winconf nil)
 
 (defvar magit-gh-pulls-editor-mode-map
@@ -300,7 +306,17 @@ option, or inferred from remotes."
                         (magit-insert-section (unfetched-pull info)
                           (insert heading))))))
                   (when (not cached?)
-                    (insert "Press `# g` to update the pull request list.\n\n"))
+                    (insert (if (bound-and-true-p magit-gh-pulls-status-documentation)
+                                magit-gh-pulls-status-documentation
+                              (format "Press `%s %s` to update the pull request list."
+                                      (substitute-command-keys "\\<magit-mode-map>\\[magit-gh-pulls-popup]")
+                                      (char-to-string
+                                       (car
+                                        (seq-find
+                                         (lambda (entry)
+                                           (eq (nth 2 entry) 'magit-gh-pulls-reload))
+                                         (plist-get magit-gh-pulls-popup :actions)))))))
+                    (insert "\n\n"))
                   (when (> (length stubs) 0)
                     (insert "\n"))))))))
     (error nil)))
