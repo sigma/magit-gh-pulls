@@ -222,6 +222,18 @@ option, or inferred from remotes."
                              (setq cached? t))))
     cached?))
 
+(defvar magit-pull-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap magit-visit-thing]      'magit-gh-pulls-diff-pull-request)
+    map)
+  "Keymap for pull-request sections.")
+
+(defvar magit-unfetched-pull-section-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [remap magit-visit-thing]      'magit-gh-pulls-fetch-commits)
+    map)
+  "Keymap for unfetched pull-request sections.")
+
 (defun magit-gh-pulls-insert-gh-pulls ()
   (condition-case-unless-debug print-section
       (progn
