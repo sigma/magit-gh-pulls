@@ -391,54 +391,29 @@ option, or inferred from remotes."
                                (car k))
                           (pcache-invalidate cache k))))))
 
-(defun magit-gh-pulls-get-remote-default (&optional remote-name-override)
-  (let ((remote-name (or remote-name-override "origin"))
-        (remote-branches (magit-git-lines "branch" "-r"))
-         remote-head)
-    (while (and remote-branches (not remote-head))
-      (let ((m (s-match (format "^\\s-*%s/HEAD -> %s/\\(\\w*\\)" remote-name remote-name) (car remote-branches))))
-        (if m
-            (setq remote-head (cadr m))
-          (setq remote-branches (cdr remote-branches)))))
-    remote-head))
+;;; Pull request creation
 
-(defun magit-gh-pulls-build-req (api user proj callback)
-  "Builds a request entity for a new pull request. Under
-   synchronous flow (editor disabled), fires CALLBACK with
-   API, USER, PROJ and the new REQUEST as args. Under
-   asynchronous flow, passes all ARGS through to the PR
-   editor which is responsible for continuing the flow."
-  (let* ((current (magit-get-current-branch))
-         (current-default (magit-gh-pulls-get-remote-default))
-         (base-branch (magit-read-branch-or-commit "Base" current-default))
-         (head-branch (magit-read-branch-or-commit "Head" current)))
-    (let* ((head-remote (concat (magit-get-remote base-branch) "/" head-branch))
-           (pushed-p (and (magit-branch-p head-remote)
-                          (null (magit-git-lines "diff" (concat head-remote ".." head-branch))))))
-      (when (and (not pushed-p)
-                 (yes-or-no-p "PR branch doesn't appear to be pushed. Push it?"))
-        (magit-push current (magit-get-remote base-branch))))
-    (let* ((base
-            (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
-                           :repo (make-instance 'gh-repos-repo :name proj)
-                           :ref base-branch))
-           (head
-            (make-instance 'gh-repos-ref :user (make-instance 'gh-users-user :name user)
-                           :repo (make-instance 'gh-repos-repo :name proj)
-                           :ref head-branch))
-           (default-title (magit-git-string "log"
-                                            (format "%s..%s" base-branch head-branch)
-                                            "--format=%s" "--reverse"))
-           (default-body (mapconcat 'identity (magit-git-items "log"
-                                                               (format "%s..%s" base-branch head-branch)
-                                                               "--reverse" "--format=**%s**%n%b") "\n")))
-
-      (if (member "--use-pr-editor" (magit-gh-pulls-arguments))
-        (magit-gh-pulls-init-pull-editor api user proj default-title default-body base head callback)
-        (let* ((title (read-string "Title: " default-title))
-               (body (read-string "Description: " default-body))
-               (req (make-instance 'gh-pulls-request :head head :base base :body body :title title)))
-          (funcall callback api user proj req))))))
+(defun magit-gh-pulls-ensure-branch-pushed (branch)
+  "Checks if the BRANCH has a remote branch (either an upstream
+  or a push-remote), and that their tips match. If the remote
+  branch is behind the local branch, poll user to push the
+  changes."
+  (let* ((remote-ref (or (magit-get-push-branch branch)
+                         (magit-get-upstream-branch branch)))
+         (pushed-p (and remote-ref (magit-branch-p remote-ref)
+                        (null (magit-git-lines "diff" (concat remote-ref ".." branch))))))
+    (unless pushed-p
+      (if remote-ref
+          (when (yes-or-no-p
+                 (format "Branch %s lags behind its remote. Push the local commits to %s?"
+                         branch remote-ref))
+            (call-interactively (if (magit-get-push-branch branch)
+                                    'magit-push-current-to-pushremote
+                                  'magit-push-current-to-upstream)))
+        (when (yes-or-no-p
+               (format "%s doesn't have a push-remote or upstream. Set the push-remote and push it?"
+                       branch))
+          (call-interactively 'magit-push-current-to-pushremote))))))
 
 (defun magit-gh-pulls-pr-template-file ()
   "Returns the path to the PULL_REQUEST_TEMPLATE file in the
@@ -449,58 +424,47 @@ option, or inferred from remotes."
            (ignore-errors (directory-files (format "%s.github/" (magit-toplevel))
                                            t "^PULL_REQUEST_TEMPLATE")))))
 
-(defun magit-gh-pulls-init-pull-editor (api user proj default-title default-body base head callback)
-  "Create a new buffer for editing this pull request and
-   switch to it. The context needed to finalize the
-   pull request is stored in a buffer-local var in the
-   newly created buffer."
+(defun magit-gh-pulls-init-pull-editor (proj base head callback)
+  "Create a new buffer for editing this pull request and switch
+   to it. Save CALLBACK to be called with the submitted PR text."
   (let ((winconf (current-window-configuration))
-        (buffer (get-buffer-create (format "*magit-gh-pulls: %s*" proj)))
-        (context (make-hash-table :test 'equal)))
-    (dolist (var '(api user proj base head callback))
-      (puthash (symbol-name var) (eval var) context))
+        (default-title (magit-git-string "log" (format "%s..%s" base head)
+                                         "--format=%s" "--reverse"))
+        (default-body (s-join "\n" (magit-git-items "log" (format "%s..%s" base head)
+                                                    "--reverse" "--format=**%s**%n%b"))))
     (split-window-vertically)
     (other-window 1)
-    (switch-to-buffer buffer)
+    (switch-to-buffer (get-buffer-create (format "*magit-gh-pulls: %s*" proj)))
     (funcall 'magit-gh-pulls-editor-mode)
-    (if (magit-gh-pulls-pr-template-file)
-        (progn (insert (or default-title "") "\n\n")
-               (insert-file-contents (magit-gh-pulls-pr-template-file)))
-      (insert (or default-title "") "\n\n" default-body))
+    (insert (or default-title "") "\n\n") ; Title
+    (if (magit-gh-pulls-pr-template-file) ; Body
+        (insert-file-contents (magit-gh-pulls-pr-template-file))
+      (insert default-body))
     (goto-char (point-min))
     (message "Opening pull request editor. C-c C-c to finish, C-c C-k to quit.")
-    (setq-local magit-gh-pulls-editor-context context)
+    (setq-local magit-gh-pulls-editor-callback callback)
     (setq magit-gh-pulls-previous-winconf winconf)))
 
 (defun magit-gh-pulls-pull-editor-finish ()
-  "Finish editing the current pull request and continue
-   to submit it. This should be called interactively
-   from within a pull request editor buffer."
+  "Finish editing the current pull request and call the saved
+   callback. This should be called interactively from within a
+   pull request editor buffer."
   (interactive)
-  (if (eq nil magit-gh-pulls-editor-context)
+  (if (eq nil magit-gh-pulls-editor-callback)
       (message "This function can only be run in a pull editor buffer.")
-    (let* ((context magit-gh-pulls-editor-context)
-           (end-of-first-line (save-excursion
+    (let* ((end-of-first-line (save-excursion
                                 (beginning-of-buffer)
                                 (line-end-position)))
            (title (s-trim (buffer-substring-no-properties 1 end-of-first-line)))
-           (body (s-trim (buffer-substring-no-properties end-of-first-line (point-max))))
-           (req (make-instance 'gh-pulls-request
-                               :head (gethash "head" context)
-                               :base (gethash "base" context)
-                               :body body :title title)))
-      (funcall (gethash "callback" context)
-               (gethash "api" context)
-               (gethash "user" context)
-               (gethash "proj" context)
-               req)
+           (body (s-trim (buffer-substring-no-properties end-of-first-line (point-max)))))
+      (funcall magit-gh-pulls-editor-callback title body)
       (magit-gh-pulls-pull-editor-quit))))
 
 (defun magit-gh-pulls-pull-editor-quit ()
   "Cleanup the current pull request editor and restore
    the previous window config."
   (interactive)
-  (if (eq nil magit-gh-pulls-editor-context)
+  (if (eq nil magit-gh-pulls-editor-callback)
       (message "This function can only be run in a pull editor buffer.")
     (let ((winconf magit-gh-pulls-previous-winconf))
       (kill-buffer)
@@ -508,22 +472,17 @@ option, or inferred from remotes."
       (when winconf
         (set-window-configuration winconf)))))
 
-(defun magit-gh-pulls-create-pull-request ()
-  "Entrypoint for creating a new pull request."
-  (interactive)
-  (let ((repo (magit-gh-pulls-guess-repo)))
-    (when repo
-      (let* ((current-branch (magit-get-current-branch))
-            (api (magit-gh-pulls-get-api))
-            (user (car repo))
-            (proj (cdr repo)))
-        (magit-gh-pulls-build-req api user proj 'magit-gh-pulls-submit-pull-request)))))
+(defun magit-gh-pulls-build-req (user proj base-branch head-branch title body)
+  "Builds a request entity for a new pull request."
+  (let* ((user (make-instance 'gh-users-user :name user))
+         (repo (make-instance 'gh-repos-repo :name proj))
+         (base (make-instance 'gh-repos-ref :user user :repo repo :ref base-branch))
+         (head (make-instance 'gh-repos-ref :user user :repo repo :ref head-branch)))
+    (make-instance 'gh-pulls-request :head head :base base :title title :body body)))
 
 (defun magit-gh-pulls-submit-pull-request (api user proj req)
-  "Endpoint for creating a new pull request. Sync and async
-   flows should both call this function to finish creating
-   a new pull request."
-  (interactive)
+  "Endpoint for creating a new pull request. Actually sends the
+  PR creation API request to Github."
   (let* ((a (gh-pulls-new api user proj req)))
     (if (not (= (oref a :http-status) 201))
         (message "Error creating pull-request: %s.  Have you pushed the branch to github?" (cdr (assoc "Status" (oref a :headers))))
@@ -532,6 +491,22 @@ option, or inferred from remotes."
         (when (member "--open-new-in-browser" (magit-gh-pulls-arguments))
           (browse-url url))
         (kill-new url)))))
+
+(defun magit-gh-pulls-create-pull-request ()
+  "Entrypoint for creating a new pull request."
+  (interactive)
+  (when-let (repo (magit-gh-pulls-guess-repo))
+    (lexical-let* ((user (car repo))
+                   (proj (cdr repo))
+                   (base-branch (magit-read-branch-or-commit "Base" "master"))
+                   (head-branch (magit-read-branch-or-commit "Head" (magit-get-current-branch))))
+      (magit-gh-pulls-ensure-branch-pushed head-branch)
+      (magit-gh-pulls-init-pull-editor
+       proj base-branch head-branch
+       (lambda (title body)
+         (let ((api (magit-gh-pulls-get-api))
+               (req (magit-gh-pulls-build-req user proj base-branch head-branch title body)))
+           (magit-gh-pulls-submit-pull-request api user proj req)))))))
 
 (defun magit-gh-pulls-reload ()
   (interactive)
@@ -592,8 +567,7 @@ option, or inferred from remotes."
   "Show popup buffer featuring Github Pull Requests commands."
   'magit-commands
   :switches '((?c "Produce merge commit" "--no-ff")
-              (?w "Open new PR in browser" "--open-new-in-browser")
-              (?e "Edit PR in full buffer" "--use-pr-editor"))
+              (?w "Open new PR in browser" "--open-new-in-browser"))
   :actions  '((?g "Reload" magit-gh-pulls-reload)
               (?f "Fetch" magit-gh-pulls-fetch-commits)
               (?d "Diff" magit-gh-pulls-diff-pull-request)
