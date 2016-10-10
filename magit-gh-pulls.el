@@ -98,8 +98,9 @@
     (define-key map (kbd "C-c C-k") 'magit-gh-pulls-pull-editor-quit)
     map))
 
-(define-derived-mode magit-gh-pulls-editor-mode text-mode "Magit GitHub Pulls Editor"
-  (font-lock-add-keywords nil (git-commit-mode-font-lock-keywords) t))
+(define-minor-mode magit-gh-pulls-editor-mode "Magit GitHub Pulls Editor"
+  :lighter  " PR-editor"
+  :keymap  'magit-gh-pulls-editor-mode-map)
 
 (easy-menu-define magit-gh-pulls-editor-mode-menu magit-gh-pulls-editor-mode-map
   "Magit GitHub Pulls Editor Menu"
@@ -435,6 +436,8 @@ option, or inferred from remotes."
     (split-window-vertically)
     (other-window 1)
     (switch-to-buffer (get-buffer-create (format "*magit-gh-pulls: %s*" proj)))
+    (funcall (if (functionp 'markdown-mode)
+                 'markdown-mode 'text-mode))
     (funcall 'magit-gh-pulls-editor-mode)
     (insert (or default-title "") "\n\n") ; Title
     (if (magit-gh-pulls-pr-template-file) ; Body
