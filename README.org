@@ -53,14 +53,15 @@
 ***** Creating Pull Requests
 
       In =magit-status= press =# c= to create a new pull request. You will be
-      asked for the base commit and the head commit for the pull-request. They
-      will default to the default branch of your repository and current head
-      respectively. Enter a title and description for the pull request, and
-      magit-gh-pulls will connect to GitHub to create the pull request. If =-w=
-      option is enabled, the new pull request will be opened on github.com in
-      the browser.
+      asked for the base commit and the head commit for the pull-request. A PR
+      editor will open where you can customize the title and the body of the
+      pull request. Finally, pressing =C-c C-c= will connect to GitHub to create
+      the pull request. If =-w= option is enabled, the new pull request will be
+      opened on github.com in the browser.
 
-      The base and head of the pull request must already be present on github.
+      /Hint: install/ =markdown-mode= /to automatically use it in PR editor./
+
+      The base and head of the pull request must already be present on Github.
       If you haven't yet pushed your local commits, magit-gh-pulls will suggest
       to push them first.
 
