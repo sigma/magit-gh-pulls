@@ -582,11 +582,16 @@ option, or inferred from remotes."
   (or (derived-mode-p 'magit-mode)
       (error "This mode only makes sense with magit"))
   (if magit-gh-pulls-mode
-      (magit-add-section-hook
-       'magit-status-sections-hook
-       'magit-gh-pulls-insert-gh-pulls
-       'magit-insert-stashes)
-    (remove-hook 'magit-status-sections-hook 'magit-gh-pulls-insert-gh-pulls))
+      (progn
+        (magit-add-section-hook
+         'magit-status-sections-hook
+         'magit-gh-pulls-insert-gh-pulls
+         'magit-insert-stashes)
+        (magit-define-popup-action 'magit-dispatch-popup
+          ?# "Github PR" 'magit-gh-pulls-popup ?!))
+    (progn
+      (remove-hook 'magit-status-sections-hook 'magit-gh-pulls-insert-gh-pulls)
+      (magit-remove-popup-key 'magit-dispatch-popup :action ?#)))
   (when (called-interactively-p 'any)
     (magit-refresh)))
 
