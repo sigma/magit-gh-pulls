@@ -64,6 +64,7 @@
 (require 'pcache)
 (require 's)
 (require 'cl-lib)
+(require 'subr-x)
 
 (defgroup magit-gh-pulls nil
   "Github.com pull-requests for Magit."
