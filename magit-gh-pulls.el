@@ -367,20 +367,26 @@ option, or inferred from remotes."
     (invalid-pull
      (error "This pull request refers to invalid reference"))))
 
+(defun magit-gh-pulls-github-merge-message (pr)
+  "Generate a default merge commit message, the same as Github does."
+  (format "Merge pull request #%d from %s/%s\n\n%s"
+          (oref pr :number)
+          (oref (oref (oref pr :head) :user) :login)
+          (oref (oref pr :head) :ref)
+          (oref pr :title)))
+
 (defun magit-gh-pulls-merge-pull-request ()
   (interactive)
   (magit-section-case
     (pull
      (let* ((req (magit-gh-section-req-data))
-            (branch (magit-gh-pulls-guess-topic-name req))
             (base (oref (oref req :base) :ref))
             (inhibit-magit-refresh t))
-       (magit-branch-and-checkout branch base)
-       (magit-merge (oref (oref req :head) :sha))
        (magit-checkout base)
-       (magit-merge branch (when (member "--no-ff" (magit-gh-pulls-arguments))
-                             '("--no-ff")))
-       (magit-call-git "branch" "-D" branch))
+       (magit-merge (oref (oref req :head) :sha)
+                    (append (list "-m" (magit-gh-pulls-github-merge-message req))
+                            (when (member "--no-ff" (magit-gh-pulls-arguments))
+                              '("--no-ff")))))
      (magit-refresh))
     (unfetched-pull
      (error "Please fetch pull request commits first"))
