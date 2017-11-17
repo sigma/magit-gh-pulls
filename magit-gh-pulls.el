@@ -1,10 +1,10 @@
 ;;; magit-gh-pulls.el --- GitHub pull requests extension for Magit
 
-;; Copyright (C) 2011-2015  Yann Hodique, Alexander Yakushev
+;; Copyright (C) 2011-2017  Yann Hodique, Alexander Yakushev
 
 ;; Author: Yann Hodique <yann.hodique@gmail.com>
 ;; Keywords: git tools
-;; Version: 0.5.2
+;; Version: 0.5.3
 ;; URL: https://github.com/sigma/magit-gh-pulls
 ;; Package-Requires: ((emacs "24.4") (gh "0.9.1") (magit "2.1.0") (pcache "0.2.3") (s "1.6.1"))
 
