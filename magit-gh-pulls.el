@@ -208,11 +208,12 @@ config option."
   (let ((creds nil)
         (ssh-config-hosts (magit-gh-pulls-get-ssh-config-hosts)))
     (dolist (remote (magit-git-lines "remote") creds)
-      (let ((parsed (magit-gh-pulls-parse-url
-                     (magit-get "remote" remote "url")
-                     ssh-config-hosts)))
-        (when parsed
-          (setq creds parsed))))))
+      (let ((url (magit-get "remote" remote "url")))
+        (if url
+          (let ((parsed (magit-gh-pulls-parse-url url ssh-config-hosts)))
+            (when parsed
+              (setq creds parsed)))
+          (message "Warning: no URL for remote %s" remote))))))
 
 (defun magit-gh-pulls-guess-repo ()
   "Return (user . project) pair obtained either from explicit
