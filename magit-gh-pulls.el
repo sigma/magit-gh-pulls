@@ -330,7 +330,7 @@ option, or inferred from remotes."
 (defun magit-gh-section-req-data (&optional section)
   (oref (apply #'gh-pulls-get
                (magit-gh-pulls-get-api)
-               (magit-section-value (or section (magit-current-section))))
+               (oref (or section (magit-current-section)) value))
         :data))
 
 (defun magit-gh-pulls-diff-pull-request ()
@@ -412,7 +412,7 @@ option, or inferred from remotes."
 
 (defun magit-gh-pulls-open-in-browser ()
   (interactive)
-  (let ((info (magit-section-value (magit-current-section))))
+  (let ((info (oref (magit-current-section) value)))
     (magit-section-case
       (pull           (browse-url (magit-gh-pulls-url-for-pull info)))
       (unfetched-pull (browse-url (magit-gh-pulls-url-for-pull info))))))
