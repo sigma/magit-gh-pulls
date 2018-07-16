@@ -6,7 +6,7 @@
 ;; Keywords: git tools
 ;; Version: 0.5.3
 ;; URL: https://github.com/sigma/magit-gh-pulls
-;; Package-Requires: ((emacs "24.4") (gh "0.9.1") (magit "2.1.0") (pcache "0.2.3") (s "1.6.1"))
+;; Package-Requires: ((emacs "24.4") (gh "0.9.1") (magit "2.12.0") (pcache "0.2.3") (s "1.6.1"))
 
 ;; This file is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -330,7 +330,7 @@ option, or inferred from remotes."
 (defun magit-gh-section-req-data (&optional section)
   (oref (apply #'gh-pulls-get
                (magit-gh-pulls-get-api)
-               (magit-section-value (or section (magit-current-section))))
+               (oref (or section (magit-current-section)) value))
         :data))
 
 (defun magit-gh-pulls-diff-pull-request ()
@@ -412,7 +412,7 @@ option, or inferred from remotes."
 
 (defun magit-gh-pulls-open-in-browser ()
   (interactive)
-  (let ((info (magit-section-value (magit-current-section))))
+  (let ((info (oref (magit-current-section) value)))
     (magit-section-case
       (pull           (browse-url (magit-gh-pulls-url-for-pull info)))
       (unfetched-pull (browse-url (magit-gh-pulls-url-for-pull info))))))
