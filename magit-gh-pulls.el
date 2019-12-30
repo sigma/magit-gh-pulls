@@ -572,7 +572,12 @@ option, or inferred from remotes."
                     magit-gh-pulls-extension-menu)
 
 (magit-define-section-jumper magit-jump-to-pulls "Pull Requests" pulls)
-(define-key magit-status-mode-map (kbd "jq") 'magit-jump-to-pulls)
+
+(if (eq (lookup-key magit-status-mode-map "j") 'magit-status-jump)
+    (transient-append-suffix 'magit-status-jump
+      #'magit-jump-to-unpushed-to-pushremote
+      '("q " "Pull Requests" magit-jump-to-pulls))
+  (define-key magit-status-mode-map (kbd "jq") 'magit-jump-to-pulls))
 
 (defvar magit-gh-pulls-mode-map
   (let ((map (make-sparse-keymap)))
