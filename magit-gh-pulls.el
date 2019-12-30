@@ -573,7 +573,7 @@ option, or inferred from remotes."
 
 (magit-define-section-jumper magit-jump-to-pulls "Pull Requests" pulls)
 
-(if (eq (lookup-key magit-status-mode-map "j") 'magit-status-jump)
+(if (eq (lookup-key magit-status-mode-map (kbd "j")) 'magit-status-jump)
     (transient-append-suffix 'magit-status-jump
       #'magit-jump-to-unpushed-to-pushremote
       '("q " "Pull Requests" magit-jump-to-pulls))
